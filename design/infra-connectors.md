@@ -2,14 +2,14 @@
 
 ## Agreed but not built
 - Fly.io account on the new Free plan ($5/month usage; up to 3 Machines and 3 Sprites). Card required.
-- One Sprite named e.g. `pond`, holding code and data.
-- OpenRouter connector set up in the Fly dashboard (Sprites › Connectors), access granted only to the pond Sprite.
 - OpenRouter account with a **credit limit** set.
 - Pushover connector (optional) for pings to my phone.
-- Pond server runs as a service that starts itself; test early that it comes back after the Sprite sleeps.
 - Code in a GitHub repo; the Sprite pulls `main`.
-- Keep my son's real memory files out of the repo (`.gitignore` the `memory/` and `pond_log.md` data).
 
 ## Built
+- v01: Sprite `pond`, URL https://pond-b6vlj.sprites.app (auth public; the key in the link guards it).
+- v01: OpenRouter connector `rke83IBGUxHfM8AFs_OVJg`, label `pond-sprite`. Gateway base `https://api.sprites.dev/v1/gateway/openrouter/<id>/v1` (not `/api/v1`).
+- v01: service `pond` (`scripts/setup-service.sh`), python3 pond/server.py on port 8080. Wakes with the Sprite: after a cold sleep the same process resumes.
+- v01: `.gitignore` covers memory/, pond_log.md, last_seen.txt, secret_key.txt.
 
 ## Ideas (not agreed)

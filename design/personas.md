@@ -32,6 +32,7 @@ Capybara: best friend. Hedgehog: finds her prickliness funny, calls her "young s
 - Hedgehog notes: dramatic, *rolls up* when worried, hates being woken, collects shiny things, grumbles about capybara hogging the warm rock.
 
 ## Built
+- v01: `pond/animals/turtle.md` (starter draft) and shared `pond/animals/rules.md` inserted into each persona. `memory/turtle.md` gets one short line per message at most.
 
 ## Ideas (not agreed)
 - Animals react to the time of day or weather (capybara fetches it).

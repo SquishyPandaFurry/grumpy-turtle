@@ -28,7 +28,7 @@ Names, ages, foods and quirks are chosen by my son (see `personas.md`).
 - `demo-submission.md` — video, social post, submission form
 
 ## Project settings
-- `build_output`: GitHub repo, branch `build/vNN` + pull request (repo name: `the-pond` — TBC)
+- `build_output`: GitHub repo, branch `build/vNN` + pull request (repo: `SquishyPandaFurry/grumpy-turtle`; cloned on the Sprite at `~/the-pond`)
 - `version_label`: `vNN` (v01, v02, …)
 - `test`: on the Sprite — restart the service, open the pond page, send one message to each animal, check replies and memory files; for v02+ also let the Sprite sleep and re-open the page
 - `publish`: merge the PR to `main`, pull on the Sprite, restart the pond service
@@ -37,3 +37,4 @@ Names, ages, foods and quirks are chosen by my son (see `personas.md`).
 
 ## Change log
 - 2026-11-24 — project set up; v01–v04 queued from the agreed plan.
+- 2026-11-24 — v01 built and merged (PR #1): Shelly the turtle chats on the private page, with memory; pond service on the Sprite.
