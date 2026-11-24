@@ -23,7 +23,7 @@ MODEL = os.environ.get("POND_MODEL", "anthropic/claude-haiku-4.5")
 CONNECTION_ID = os.environ.get("POND_CONNECTION_ID", "")
 GATEWAY_BASE = os.environ.get(
     "POND_GATEWAY_BASE",
-    f"https://api.sprites.dev/v1/gateway/openrouter/{CONNECTION_ID}/api/v1",
+    f"https://api.sprites.dev/v1/gateway/openrouter/{CONNECTION_ID}/v1",
 )
 
 MAX_TEXT = 500           # longest message accepted from the page

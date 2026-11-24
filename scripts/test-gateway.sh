@@ -6,7 +6,7 @@ set -euo pipefail
 CONN="${1:-${POND_CONNECTION_ID:-}}"
 [ -n "$CONN" ] || { echo "usage: $0 <openrouter_connection_id>"; exit 1; }
 MODEL="${POND_MODEL:-anthropic/claude-haiku-4.5}"
-BASE="${POND_GATEWAY_BASE:-https://api.sprites.dev/v1/gateway/openrouter/$CONN/api/v1}"
+BASE="${POND_GATEWAY_BASE:-https://api.sprites.dev/v1/gateway/openrouter/$CONN/v1}"
 
 echo "== Connectors this Sprite can use (gateway/list)"
 curl -sS https://api.sprites.dev/v1/gateway/list || true
