@@ -24,6 +24,7 @@ The core program. It doesn't think; it builds context for the model and tidies u
   exact OpenRouter path and connection ID in the Fly dashboard.
 
 ## Built
+- v01: `ask(animal, text)` steps 2 (persona + memory + message, no pond log yet), 3 (gateway call) and 4 (memory line or NONE). No wake-up, gossip or last_seen yet. Model: `anthropic/claude-haiku-4.5` (`POND_MODEL`).
 
 ## Ideas (not agreed)
 - Animals occasionally message first via Pushover ("Hedgehog refuses to come out until someone says sorry").

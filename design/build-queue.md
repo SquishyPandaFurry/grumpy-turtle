@@ -2,7 +2,7 @@
 
 One line per item: item — section doc — S/M/L
 
-## v01 — one animal talking (Tue–Wed)
+## v01 — one animal talking (Tue–Wed) — BUILT 2026-11-24 (PR #1)
 - Fly account, Sprite, OpenRouter connector + credit limit — infra-connectors.md — S
 - Repo skeleton, pond server as a self-starting service — infra-connectors.md — S
 - Turtle persona + memory file, `ask()` with memory append — pond-script.md / personas.md — M

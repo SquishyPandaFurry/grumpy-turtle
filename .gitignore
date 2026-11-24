@@ -1,0 +1,7 @@
+# Runtime data: the real memories and logs stay on the Sprite, never in git
+pond/memory/
+pond/pond_log.md
+pond/last_seen.txt
+pond/secret_key.txt
+__pycache__/
+*.pyc
