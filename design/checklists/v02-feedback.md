@@ -14,6 +14,11 @@
 - [ ] Bug fix (tablet keyboard): with the keyboard open, the header, cards and latest message stay on screen.
 - [ ] Bug fix (Shelly remembering): tell Shelly "my favourite colour is green", then ask her in the same chat and again after a reload. The service log now shows a `memory <animal>: saved / nothing (model said …)` line for every message, and any memory error.
 
+## Sprite test (2026-11-25, test copy on port 8081, live pond untouched)
+- Greetings, private chats, the Pond group chat (auto-choose, named animal, picked animal) and UK time all worked with real replies.
+- Shelly remembered "green" later in the same chat, and again on a new visit from her memory file.
+- The first run hit OpenRouter's limit for new accounts (20 model calls a minute; each message uses 2–3 calls). The fix: a rate-limited call is retried after 3s and then 8s. Two memory bugs were also fixed: an explanation was saved as a fact, and a fact about the animal was saved instead of one about the child. On the second run a "(none)" answer was saved, which is now fixed and covered by the local test.
+
 ## Part B — every build
 - [ ] Pond page opens from the bookmarked private link (and not without it)
 - [ ] Each animal replies in character, kind and age-appropriate
