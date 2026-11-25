@@ -43,6 +43,11 @@ Capybara: best friend. Hedgehog: finds her prickliness funny, calls her "young s
 - Capybara notes: laid-back, says "no worries", loves baths and oranges, the one who "goes out" for news.
 - Hedgehog notes: dramatic, *rolls up* when worried, hates being woken, collects shiny things, grumbles about capybara hogging the warm rock.
 
+- Final names (agreed 2026-11-25, v02 feedback, chosen by my son): **Rocky** the turtle, **Ferdinand**
+  the capybara, **Colin** the hedgehog. Rename in the first line of each persona file and anywhere the
+  page or prompts say Shelly / Coco / Prickles. Personalities stay as they are: in character already.
+- The animals know each other in private chats (agreed 2026-11-25, v02 feedback): see pond-script.md.
+
 ## Built
 - v01: `pond/animals/turtle.md` (starter draft) and shared `pond/animals/rules.md` inserted into each persona. `memory/turtle.md` gets one short line per message at most.
 

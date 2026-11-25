@@ -28,6 +28,11 @@ The core program. It doesn't think; it builds context for the model and tidies u
   plus a private chat with each animal. Each chat keeps its own last-10 + summary history. Private
   chats are seen only by that animal; anything said in the Pond chat is seen by all three.
   Memory files stay per animal (facts are saved to the animal that replied).
+- Private chats know the pond (agreed 2026-11-25, v02 feedback): in a private chat, the animal knows
+  the other two exist (from its persona's "The others") and can see what was said in the Pond group chat
+  (its recent messages + summary). It never sees another animal's private chat. Goes with character
+  knowledge (personas.md). Re-test private-chat privacy once this is built: in v02 the check passed
+  only because the animals didn't know about each other at all.
 - Gossip on wake-up: 3–4 alternating one-line exchanges between animals, appended to `pond_log.md`.
   Optionally push the most dramatic line via Pushover.
 - If no animal is picked, a quick model call chooses who answers.

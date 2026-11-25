@@ -1,7 +1,8 @@
 # Bugs
 
 ## Open
-(none)
+- **Bedtime takes over every chat** (v02, found 2026-11-25). In the evening, whatever he talks about (hot chocolate, oranges…), the animals keep steering back to bedtime and sleeping because it's late. Expected: they know the time, but mention it only now and then or when it fits (he asks, says goodnight, or it's very late), and otherwise follow what he's talking about. Likely fix: soften the time line in the prompt ("background only, don't keep bringing it up") and count bedtime/sleep as a recent topic not to repeat. — personas.md / pond-script.md
+- **Tablet keyboard still takes half the screen** (v02, found 2026-11-25). The v02 fix works (header, cards and latest message stay on screen), but with the keyboard open only half the screen is left, so very little chat is visible. Suggested fix: while typing, fold the header and cards into a slim bar so more of the chat shows. — web-page.md
 
 ## Fixed
 - v02 (2026-11-25): Shelly not remembering (chat history + memory logging + non-fact filter; tested on the Sprite) and tablet keyboard hiding the top message (app pinned to the visible viewport).
