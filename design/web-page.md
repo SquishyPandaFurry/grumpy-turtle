@@ -8,6 +8,7 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 - Replies shown with the animal's picture next to them.
 - Works well on a tablet.
 - Chat history (agreed 2026-11-24, v01 feedback): the page keeps the current chat so the animal can see the last 10 messages plus a summary of older ones (see pond-script.md). A reload starts a fresh chat.
+- Group "Pond" chat plus a private chat with each animal (agreed 2026-11-25, see pond-script.md). Tapping an animal card opens its private chat.
 - Smaller text on phones (agreed 2026-11-25, v01 feedback): on narrow phone screens the messages are too big; shrink text there while the tablet keeps its big text.
 - Opening greeting comes from the animal (friendly, using its memory) instead of the fixed "Hello there!".
 

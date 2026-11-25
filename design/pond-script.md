@@ -23,6 +23,11 @@ The core program. It doesn't think; it builds context for the model and tidies u
 - Friendly greeting (agreed 2026-11-24, v01 feedback): when the page opens, the animal greets the child
   like a friend would, using what's in its memory file (e.g. asking about something he told it before),
   instead of the fixed "Hello there!".
+- Group chat + private chats (agreed 2026-11-25, v01 feedback): a "Pond" group chat where all three
+  animals see the whole chat (labelled with who spoke) and whoever is picked or auto-chosen answers,
+  plus a private chat with each animal. Each chat keeps its own last-10 + summary history. Private
+  chats are seen only by that animal; anything said in the Pond chat is seen by all three.
+  Memory files stay per animal (facts are saved to the animal that replied).
 - Gossip on wake-up: 3–4 alternating one-line exchanges between animals, appended to `pond_log.md`.
   Optionally push the most dramatic line via Pushover.
 - If no animal is picked, a quick model call chooses who answers.
@@ -34,9 +39,4 @@ The core program. It doesn't think; it builds context for the model and tidies u
 - v01: `ask(animal, text)` steps 2 (persona + memory + message, no pond log yet), 3 (gateway call) and 4 (memory line or NONE). No wake-up, gossip or last_seen yet. Model: `anthropic/claude-haiku-4.5` (`POND_MODEL`).
 
 ## Ideas (not agreed)
-- OPEN QUESTION before v02 (raised in v01 feedback 2026-11-25): how does the chat (last 10 messages +
-  running summary) work with three animals? Option A: one shared group chat, every animal sees the
-  whole chat and replies are labelled with who spoke. Option B: a separate chat per animal card.
-  Note for A: memory files stay per animal, but within one visit every animal would see what was
-  said to the others, which bends "telling the turtle doesn't tell the hedgehog".
 - Animals occasionally message first via Pushover ("Hedgehog refuses to come out until someone says sorry").
