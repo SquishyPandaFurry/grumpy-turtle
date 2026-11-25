@@ -12,6 +12,13 @@ Plain-text files the model reads as instructions. No code in them.
 - Memory is per animal (telling the turtle doesn't tell the hedgehog).
 - When a memory file passes ~50 lines, summarise it down.
 - Gossip may borrow one random memory line from another animal ("Capybara told me you like green!").
+- Time of day (agreed 2026-11-25, v01 feedback): each prompt says the current UK time, day and season
+  (morning / after school / evening / bedtime, dark winter evening, etc.) so the animal's world matches
+  his. Real weather stays an idea below (needs the capybara's connector).
+- More variety (agreed 2026-11-25, v01 feedback): Shelly talks about "warm sunny rock" in almost every
+  reply. Give each persona a wider list of things it does and notices around the pond (rain, frogs,
+  fish, mud, ducks, night-time, seasons), tell it not to repeat the same topic or phrase it used
+  recently, and to answer what the child actually said first.
 - Starter draft for the turtle (my son renames and edits):
 
 ```markdown
@@ -35,7 +42,7 @@ Capybara: best friend. Hedgehog: finds her prickliness funny, calls her "young s
 - v01: `pond/animals/turtle.md` (starter draft) and shared `pond/animals/rules.md` inserted into each persona. `memory/turtle.md` gets one short line per message at most.
 
 ## Ideas (not agreed)
-- Animals react to the time of day or weather (capybara fetches it).
+- Animals react to the real weather (capybara fetches it). (Time of day is now agreed above.)
 - Per-animal mood that drifts based on how recently they were talked to.
 
 ## Session with my son (do this early in the week)
