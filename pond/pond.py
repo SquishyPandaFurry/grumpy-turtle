@@ -76,12 +76,17 @@ COMPACT_PROMPT = (
 )
 
 GOSSIP_PROMPT = (
-    "Three pond animals have been alone for {hours} while the child was away. First write one line "
-    "'REMEMBER: ' and the one thing that happened between them, under 15 words. Then write the gossip "
+    "Three pond animals have been alone for {hours} while the child was away. Write the gossip "
     "they had: {lines} short lines (one or two sentences each), taking turns, each line "
     "'Name: what they said' (names: {names}). Each animal sounds like itself and has its own opinion: "
     "they tease, disagree and change the subject, they don't just agree. Carry on from what happened "
-    "before. Gentle, funny, fine for a young child; no talk of bedtime."
+    "before. Gentle, funny, fine for a young child; no talk of bedtime. Only the gossip lines, nothing else."
+)
+
+GOSSIP_GIST_PROMPT = (
+    "Here is some gossip between pond animals. In ONE line under 15 words, say the main thing that "
+    "happened or was said between them, using their names (e.g. 'Colin panicked about a fox and "
+    "Ferdinand offered him a soak'). Only this gossip, nothing older. Just the line."
 )
 
 SUMMARY_PROMPT = (
@@ -677,11 +682,21 @@ def gossip(hours=WAKE_HOURS):
         max_tokens=500, temperature=1.0,
     )
     lines, remember = parse_gossip(raw)
-    log(f"gossip: {len(lines)} lines, remember {'yes' if remember else 'no'}")
     if len(lines) < 2:
         log(f"gossip: unusable answer {raw[:120]!r}")
         return []
     append_pond_log(lines)
+    if not remember:
+        # A second small call: what these new lines were about, for each animal's pond memory.
+        try:
+            gist = call_model([{"role": "system", "content": GOSSIP_GIST_PROMPT},
+                               {"role": "user", "content": "\n".join(lines)}], max_tokens=60)
+            remember = clean_pond_fact(gist)
+            if not remember:
+                log(f"gossip: gist not usable {gist[:120]!r}")
+        except PondError as e:
+            log(f"gossip gist error: {e}")
+    log(f"gossip: {len(lines)} lines, remember {'yes' if remember else 'no'}")
     if remember:
         for a in list_animals():
             append_memory(a, remember, "pond")

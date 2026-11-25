@@ -14,7 +14,8 @@ def kind(body):
     system = body["messages"][0]["content"]
     if "help a pond animal remember" in system: return "memory"
     if "Rewrite it as a shorter list" in system: return "compact"
-    if "write the gossip" in system: return "gossip"
+    if "Write the gossip" in system: return "gossip"
+    if "Here is some gossip" in system: return "gist"
     if "running summary" in system: return "summary"
     if "pick who should answer" in system: return "choose"
     if "opened the chat" in body["messages"][-1]["content"]: return "greet"
@@ -41,13 +42,15 @@ class FakeGateway(BaseHTTPRequestHandler):
         elif k == "compact":
             text = "\n".join(f"- Short fact {i}" for i in range(12))
         elif k == "gossip":
-            text = ("**REMEMBER:** The magpie took Colin's shiny button\n\n"
-                    "Colin: Honestly! Someone moved my shiny button.\n**Ferdinand:** No worries, I'll find it.\n"
+            text = ("Colin: Honestly! Someone moved my shiny button.\n**Ferdinand:** No worries, I'll find it.\n"
                     "Shark: I am not in this pond.\nRocky: Ahh... it was the magpie, long ago...")
         elif k == "summary":
             text = "They talked about frogs and colours."
         elif k == "choose":
             text = "hedgehog"
+        elif k == "gist":
+            assert "magpie" in user and "Shark" not in user, user
+            text = "The magpie took Colin's shiny button"
         elif k == "greet":
             text = "Hello again, friend!"
         else:
