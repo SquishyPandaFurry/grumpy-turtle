@@ -660,7 +660,8 @@ def parse_gossip(raw):
     lines, remember = [], None
     for l in (raw or "").splitlines():
         l = l.strip().lstrip("-*• ").strip().replace("**", "")
-        m = re.match(r"([A-Za-z]+)\s*:\s*(.+)", l)
+        # "Colin: ...", also "Colin (sighing): ..." or "Colin *rolls up*: ..."
+        m = re.match(r"([A-Za-z]+)(?:\s*[(*][^:]{0,40}[)*])?\s*:\s*(.+)", l)
         if not m:
             continue
         who, said = m.group(1), re.sub(r"[\x00-\x1f<>`]", "", m.group(2)).strip()
@@ -691,7 +692,7 @@ def gossip(hours=WAKE_HOURS):
         try:
             gist = call_model([{"role": "system", "content": GOSSIP_GIST_PROMPT},
                                {"role": "user", "content": "\n".join(lines)}], max_tokens=60)
-            remember = clean_pond_fact(gist)
+            remember = _clean_line(gist)   # gossip is shared anyway, so it may mention the child
             if not remember:
                 log(f"gossip: gist not usable {gist[:120]!r}")
         except PondError as e:

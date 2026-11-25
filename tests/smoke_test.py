@@ -50,7 +50,7 @@ class FakeGateway(BaseHTTPRequestHandler):
             text = "hedgehog"
         elif k == "gist":
             assert "magpie" in user and "Shark" not in user, user
-            text = "The magpie took Colin's shiny button"
+            text = "The magpie took Colin's shiny button while the child was away"
         elif k == "greet":
             text = "Hello again, friend!"
         else:
@@ -90,8 +90,8 @@ def check_clean_fact():
     assert pond.split_memory_answer("His dog is Biscuit") == ("His dog is Biscuit", None)
     assert pond.clean_pond_fact("Colin is cross with Ferdinand") == "Colin is cross with Ferdinand"
     assert pond.clean_pond_fact("NONE") is None and pond.clean_pond_fact("The child likes green") is None
-    lines, rem = pond.parse_gossip("Colin: Honestly!\nShark: hi\n- **Rocky:** Ahh...\nREMEMBER: Colin sulked")
-    assert lines == ["Colin: Honestly!", "Rocky: Ahh..."] and rem == "Colin sulked", (lines, rem)
+    lines, rem = pond.parse_gossip("Colin: Honestly!\nShark: hi\n- **Rocky:** Ahh...\nColin (sighing): No.\nFerdinand *grins*: Yes.\nREMEMBER: Colin sulked")
+    assert lines == ["Colin: Honestly!", "Rocky: Ahh...", "Colin: No.", "Ferdinand: Yes."] and rem == "Colin sulked", (lines, rem)
 
 
 def main():
