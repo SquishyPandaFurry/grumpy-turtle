@@ -16,6 +16,8 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 - v01: basic one-animal chat page at `GET /?key=…`; `POST /talk` `{animal, text}` → `{animal, reply}` with `X-Pond-Key` header. No key → 404.
 - v01: private via secret key in the link (pond/secret_key.txt on the Sprite).
 
+- v02: 🌿 Pond card + one card per animal (emoji until the drawings), private chat per card, "Who answers?" chips in the Pond chat, greeting per chat, 📰 Pond news panel, smaller text under 600px, app pinned to the visible viewport so the tablet keyboard doesn't hide the top. `POST /greet` added.
+
 ## Ideas (not agreed)
 - Mockup to show my son before building.
 - A pond background behind the chat (v01 feedback 2026-11-25, "for later"). Could fit with the Polish step that adds my son's drawings.

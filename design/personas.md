@@ -46,6 +46,8 @@ Capybara: best friend. Hedgehog: finds her prickliness funny, calls her "young s
 ## Built
 - v01: `pond/animals/turtle.md` (starter draft) and shared `pond/animals/rules.md` inserted into each persona. `memory/turtle.md` gets one short line per message at most.
 
+- v02: `capybara.md` (Coco) and `hedgehog.md` (Prickles), draft names until the session with my son; all three have a "Things you do and notice around the pond" list; prompt says answer first, don't repeat; UK time/day/season/dark in every prompt.
+
 ## Ideas (not agreed)
 - Animals react to the real weather (capybara fetches it). (Time of day is now agreed above.)
 - Per-animal mood that drifts based on how recently they were talked to.
