@@ -35,7 +35,7 @@
 - [x] Pond page opens from the bookmarked private link (and not without it) — yes, used for all of the above
 - [x] Each animal replies in character, kind and age-appropriate — yes (Part A)
 - [~] Something told to one animal is remembered next time, and not by the others — remembered yes; "not by the others" only technically (Part A)
-- [ ] After the Sprite has slept, the page wakes it and the server is running — not checked yet
+- [x] After the Sprite has slept, the page wakes it and the server is running — yes, wakes after a few seconds (2026-11-25)
 - [x] No API key anywhere on the Sprite or in the repo — repo checked 2026-11-25: no key (Sprite not re-checked in this thread)
 - [x] Real memory files not committed — checked 2026-11-25: no memory files or secret_key.txt in git
 - [~] Works on the tablet — yes, but the keyboard leaves half a screen (bugs.md)
