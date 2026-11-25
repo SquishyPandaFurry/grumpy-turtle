@@ -76,11 +76,12 @@ COMPACT_PROMPT = (
 )
 
 GOSSIP_PROMPT = (
-    "Three pond animals have been alone for {hours} while the child was away. Write the gossip "
-    "they had: {lines} short lines, taking turns, each line 'Name: what they said' (names: {names}). "
-    "Each animal sounds like itself and has its own opinion: they tease, disagree and change the "
-    "subject, they don't just agree. Carry on from what happened before. Gentle, funny, fine for a "
-    "young child. Then one last line 'REMEMBER: ' and the one thing that happened, under 15 words."
+    "Three pond animals have been alone for {hours} while the child was away. First write one line "
+    "'REMEMBER: ' and the one thing that happened between them, under 15 words. Then write the gossip "
+    "they had: {lines} short lines (one or two sentences each), taking turns, each line "
+    "'Name: what they said' (names: {names}). Each animal sounds like itself and has its own opinion: "
+    "they tease, disagree and change the subject, they don't just agree. Carry on from what happened "
+    "before. Gentle, funny, fine for a young child; no talk of bedtime."
 )
 
 SUMMARY_PROMPT = (
@@ -673,7 +674,7 @@ def gossip(hours=WAKE_HOURS):
         [{"role": "system", "content": GOSSIP_PROMPT.format(
             hours=f"{hours} hours", lines="3 or 4", names=names)},
          {"role": "user", "content": _gossip_context(hours)}],
-        max_tokens=350, temperature=1.0,
+        max_tokens=500, temperature=1.0,
     )
     lines, remember = parse_gossip(raw)
     log(f"gossip: {len(lines)} lines, remember {'yes' if remember else 'no'}")
