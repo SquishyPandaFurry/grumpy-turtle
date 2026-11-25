@@ -7,6 +7,8 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 - `POST /talk` — `{animal, text}` → pond script → `{animal, reply, drawing?}`.
 - Replies shown with the animal's picture next to them.
 - Works well on a tablet.
+- Chat history (agreed 2026-11-24, v01 feedback): the page keeps the current chat so the animal can see the last 10 messages plus a summary of older ones (see pond-script.md). A reload starts a fresh chat.
+- Opening greeting comes from the animal (friendly, using its memory) instead of the fixed "Hello there!".
 
 ## Built
 - v01: basic one-animal chat page at `GET /?key=…`; `POST /talk` `{animal, text}` → `{animal, reply}` with `X-Pond-Key` header. No key → 404.

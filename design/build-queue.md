@@ -13,6 +13,10 @@ One line per item: item — section doc — S/M/L
 - Capybara and hedgehog personas (from session with my son) — personas.md — S
 - Three animal cards, pick-an-animal, auto-choose who answers — web-page.md / pond-script.md — M
 - Shared pond log + pond news panel — pond-script.md / web-page.md — S
+- Chat history: last 10 messages + running summary of older ones (v01 feedback) — pond-script.md / web-page.md — M
+- Friendly greeting on page open, using the animal's memory (v01 feedback) — pond-script.md / web-page.md — S
+- Time of day / day / season in every prompt (v01 feedback) — personas.md / pond-script.md — S
+- Persona variety: wider pond life, don't repeat recent topics, answer the child first (v01 feedback) — personas.md — S
 
 ## v03 — the pond lives (Thu)
 - Wake-up detection + gossip — pond-script.md — M

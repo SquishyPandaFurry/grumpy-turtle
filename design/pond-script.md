@@ -16,6 +16,13 @@ The core program. It doesn't think; it builds context for the model and tidies u
   3. Call the model through the OpenRouter **connector gateway** (no API key in code or on the Sprite).
   4. Second cheap call: "Anything worth remembering long-term? One short line, or NONE." Append if not NONE.
   5. Update `last_seen`, return reply.
+- Chat history (agreed 2026-11-24, v01 feedback): the prompt also includes the last 10 messages of the
+  current chat word for word. Older messages aren't dropped: they're rolled into a short running summary
+  of the chat so far, which goes into the prompt too. Long-lasting facts still go to the memory file.
+  The chat and its summary last for one visit: a reload starts a fresh chat, keeping only the memory file.
+- Friendly greeting (agreed 2026-11-24, v01 feedback): when the page opens, the animal greets the child
+  like a friend would, using what's in its memory file (e.g. asking about something he told it before),
+  instead of the fixed "Hello there!".
 - Gossip on wake-up: 3–4 alternating one-line exchanges between animals, appended to `pond_log.md`.
   Optionally push the most dramatic line via Pushover.
 - If no animal is picked, a quick model call chooses who answers.
