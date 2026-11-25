@@ -19,6 +19,11 @@ Plain-text files the model reads as instructions. No code in them.
   reply. Give each persona a wider list of things it does and notices around the pond (rain, frogs,
   fish, mud, ducks, night-time, seasons), tell it not to repeat the same topic or phrase it used
   recently, and to answer what the child actually said first.
+- Character knowledge (agreed 2026-11-25): besides what they know about the child, each animal also
+  records what happens between the animals (e.g. "Coco brought me an orange", "Prickles is cross about
+  the warm rock") in a separate file, `memory/<animal>-pond.md`, so gossip and the Pond chat can carry on
+  from earlier. It's kept apart from the child's facts in `memory/<animal>.md` and goes into the prompt
+  under its own heading. One short line at most per exchange, same rules as child memory.
 - Starter draft for the turtle (my son renames and edits):
 
 ```markdown

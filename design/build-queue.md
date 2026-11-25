@@ -24,6 +24,7 @@ One line per item: item — section doc — S/M/L
 - Wake-up detection + gossip — pond-script.md — M
 - Pushover pings — infra-connectors.md — S
 - Memory summarising past ~50 lines — personas.md — S
+- Character knowledge: each animal remembers what happens between the animals, separate from the child's facts — personas.md / pond-script.md — S
 
 ## v04 — Shelly draws (Thu–Fri)
 - Turtle command interpreter → SVG — turtle-drawing.md — M
