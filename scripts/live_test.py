@@ -36,19 +36,19 @@ for room in ("pond", "turtle", "capybara", "hedgehog"):
     greet(room)
 
 print("== Private chats")
-say("turtle", "hi Shelly! my favourite colour is green")
+say("turtle", "hi Rocky! my favourite colour is green")
 say("turtle", "what did you do today?")
 say("turtle", "what's my favourite colour?")
-say("capybara", "hello Coco, do you like oranges?")
-say("hedgehog", "hello Prickles, what's in your collection?")
+say("capybara", "hello Ferdinand, do you like oranges?")
+say("hedgehog", "hello Colin, what's in your collection?")
 say("hedgehog", "does anyone know my favourite colour?")
 
 print("== Pond group chat")
 say("pond", "hello everyone!")
-say("pond", "Coco, where did you go today?")
+say("pond", "Ferdinand, where did you go today?")
 say("pond", "what do you all do when it gets dark?", animal="hedgehog")
 
-print("== New visit: Shelly should still remember green from her memory file")
+print("== New visit: Rocky should still remember green from his memory file")
 greet("turtle", visit="livetest2")
 say("turtle", "do you remember my favourite colour?", visit="livetest2")
 

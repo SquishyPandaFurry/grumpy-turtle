@@ -13,6 +13,8 @@ seen = []
 def kind(body):
     system = body["messages"][0]["content"]
     if "help a pond animal remember" in system: return "memory"
+    if "Rewrite it as a shorter list" in system: return "compact"
+    if "Write the gossip" in system: return "gossip"
     if "running summary" in system: return "summary"
     if "pick who should answer" in system: return "choose"
     if "opened the chat" in body["messages"][-1]["content"]: return "greet"
@@ -33,7 +35,15 @@ class FakeGateway(BaseHTTPRequestHandler):
         system = body["messages"][0]["content"]
         if k == "memory":
             said = user.split("Child said:")[1]
-            text = "His favourite colour is green" if "green" in said else "NONE"
+            child = "His favourite colour is green" if "green" in said else "NONE"
+            pond = "Colin is cross that Ferdinand took the warm rock" if "warm rock" in said else "NONE"
+            text = f"CHILD: {child}\nPOND: {pond}"
+        elif k == "compact":
+            text = "\n".join(f"- Short fact {i}" for i in range(12))
+        elif k == "gossip":
+            text = ("Colin: Honestly! Someone moved my shiny button.\n**Ferdinand:** No worries, I'll find it.\n"
+                    "Shark: I am not in this pond.\nRocky: Ahh... it was the magpie, long ago...\n"
+                    "REMEMBER: The magpie took Colin's shiny button")
         elif k == "summary":
             text = "They talked about frogs and colours."
         elif k == "choose":
@@ -60,6 +70,8 @@ def check_time_of_day():
     # Saturday 19:30 GMT in January: bedtime, weekend, winter
     s = pond.time_of_day(datetime(2026, 1, 3, 19, 30, tzinfo=timezone.utc))
     assert "Saturday" in s and "weekend" in s and "bedtime" in s and "winter" in s, s
+    s = pond.time_of_day(datetime(2026, 1, 3, 18, 0, tzinfo=timezone.utc))
+    assert "bedtime" not in s, s
 
 
 def check_clean_fact():
@@ -68,9 +80,15 @@ def check_clean_fact():
     assert pond.clean_fact("- His dog is called Biscuit", "turtle") == "His dog is called Biscuit"
     for bad in ("NONE", "None", "none.", "(none)", "[NONE]", "*None*", "", "Nothing new.",
                 "No new lasting facts to remember. The child only asked a question, and the animal's reply",
-                "The animal's name is Prickles.", "Coco the pond animal loves oranges."):
+                "The animal's name is Colin.", "Ferdinand the pond animal loves oranges.", "CHILD: NONE"):
         assert pond.clean_fact(bad, "hedgehog") is None, bad
-    assert pond.clean_fact("Prickles is his favourite", "hedgehog") is None
+    assert pond.clean_fact("Colin is his favourite", "hedgehog") is None
+    assert pond.split_memory_answer("CHILD: Likes frogs\nPOND: NONE") == ("Likes frogs", "NONE")
+    assert pond.split_memory_answer("His dog is Biscuit") == ("His dog is Biscuit", None)
+    assert pond.clean_pond_fact("Colin is cross with Ferdinand") == "Colin is cross with Ferdinand"
+    assert pond.clean_pond_fact("NONE") is None and pond.clean_pond_fact("The child likes green") is None
+    lines, rem = pond.parse_gossip("Colin: Honestly!\nShark: hi\n- **Rocky:** Ahh...\nREMEMBER: Colin sulked")
+    assert lines == ["Colin: Honestly!", "Rocky: Ahh..."] and rem == "Colin sulked", (lines, rem)
 
 
 def main():
@@ -109,8 +127,11 @@ def main():
         assert status(base + "/") == 404, "page must need the key"
         assert status(base + "/?key=wrong") == 404
         page = urllib.request.urlopen(base + "/?key=testkey").read().decode()
-        for name in ("Shelly", "Coco", "Prickles"):
+        for name in ("Rocky", "Ferdinand", "Colin"):
             assert name in page, name
+        for old in ("Shelly", "Coco", "Prickles"):
+            assert old not in page, old
+        assert "typing" in page and "freshNews" in page
         assert "__ANIMALS__" not in page and "__NEWS__" not in page and "shiny button" in page
         assert status(talk("hi", key="wrong")) == 404, "talk must need the key"
         assert status(req("/greet", {"visit": "v1", "room": "pond"}, key="wrong")) == 404
@@ -145,23 +166,48 @@ def main():
         assert not (work / "pond/memory/hedgehog.md").exists()
         call(talk("hello hedgehog", room="hedgehog"))
         hsys = chat_prompts()[-1]["messages"][0]["content"]
-        assert "Prickles" in hsys and "green" not in hsys and "Biscuit" not in hsys
+        assert "Colin" in hsys and "green" not in hsys and "Biscuit" not in hsys
 
         # Private chats are private
         assert "favourite colour" not in chat_prompts()[-1]["messages"][1]["content"]
 
         # Pond group chat: auto-choose, picked animal, name mentioned
         r = call(talk("tell me a story", room="pond"))
-        assert r["animal"] == "hedgehog" and r["name"] == "Prickles", r  # fake chooser says hedgehog
+        assert r["animal"] == "hedgehog" and r["name"] == "Colin", r  # fake chooser says hedgehog
         r = call(talk("and you?", room="pond", animal="capybara"))
         assert r["animal"] == "capybara", r
         n_choose = sum(kind(b) == "choose" for _, _, b in seen)
-        r = call(talk("Shelly, are you there?", room="pond"))
+        r = call(talk("Rocky, are you there?", room="pond"))
         assert r["animal"] == "turtle", r
         assert sum(kind(b) == "choose" for _, _, b in seen) == n_choose, "a named animal needs no choose call"
         user = chat_prompts()[-1]["messages"][1]["content"]
-        assert "Prickles: Ahh" in user and "Coco: Ahh" in user, "group chat is labelled with who spoke"
-        assert "Pond group chat" in chat_prompts()[-1]["messages"][0]["content"]
+        assert "Colin: Ahh" in user and "Ferdinand: Ahh" in user, "group chat is labelled with who spoke"
+        psys = chat_prompts()[-1]["messages"][0]["content"]
+        assert "Pond group chat" in psys and "Don't echo" in psys
+        assert "Don't bring up bedtime" in psys and "sleepy at bedtime" not in psys
+        temps = {b["messages"][0]["content"].splitlines()[0]: b.get("temperature") for b in chat_prompts()[-3:]}
+        assert len(set(temps.values())) == 3, temps   # each animal has its own temperature
+
+        # Character knowledge: pond events from the Pond chat go to memory/<animal>-pond.md
+        call(talk("who has the warm rock?", room="pond", animal="hedgehog"))
+        hp = work / "pond/memory/hedgehog-pond.md"
+        hm = work / "pond/memory/hedgehog.md"
+        assert "warm rock" in hp.read_text() and not (hm.exists() and "warm rock" in hm.read_text())
+        call(talk("hi again", room="pond", animal="hedgehog"))
+        hsys = chat_prompts()[-1]["messages"][0]["content"]
+        assert "between you and the other animals" in hsys and "Colin is cross" in hsys
+        # ...but never from a private chat
+        call(talk("the warm rock is mine", room="capybara"))
+        assert not (work / "pond/memory/capybara-pond.md").exists()
+
+        # Private chats know the others and this visit's Pond chat, never another private chat
+        call(talk("hello Ferdinand", room="capybara"))
+        csys = chat_prompts()[-1]["messages"][0]["content"]
+        assert "Rocky the turtle" in csys and "Colin the hedgehog" in csys
+        assert "tell me a story" in csys, "private chat sees the Pond chat"
+        assert "my favourite colour is green" not in csys and "hello hedgehog" not in csys, "never another private chat"
+        call(talk("hello", room="capybara", visit="other"))
+        assert "tell me a story" not in chat_prompts()[-1]["messages"][0]["content"], "only this visit's Pond chat"
 
         # Last 10 + running summary
         for i in range(10):
@@ -181,6 +227,29 @@ def main():
         r = call(talk("please rate limit me", visit="v4"))
         assert r["reply"].startswith("Ahh") and FakeGateway.limited, r
         assert "rate limited, retrying" in (work / "server.log").read_text()
+
+        # Memory summarising past ~50 lines (with a .bak copy)
+        big = work / "pond/memory/capybara.md"
+        big.write_text("".join(f"- Fact number {i}\n" for i in range(50)))
+        call(talk("my favourite colour is green", room="capybara", visit="v5"))
+        assert big.read_text().count("\n") == 12 and "Short fact 0" in big.read_text(), big.read_text()
+        assert "Fact number 49" in (work / "pond/memory/capybara.md.bak").read_text()
+
+        # Wake-up: 7 hours with no visit -> gossip into the pond log, then the greeting mentions it
+        (work / "pond/last_seen.txt").write_text(f"{time.time() - 7 * 3600:.0f}\n")
+        g = call(req("/greet", {"visit": "v6", "room": "turtle"}))
+        assert sum(kind(b) == "gossip" for _, _, b in seen) == 1
+        logtxt = (work / "pond/pond_log.md").read_text()
+        assert "- Colin: Honestly! Someone moved my shiny button." in logtxt and "Shark" not in logtxt, logtxt
+        assert "- Ferdinand: No worries" in logtxt
+        assert any("magpie, long ago" in l for l in g["news"]), g
+        gp = [b for _, _, b in seen if kind(b) == "greet"][-1]["messages"][-1]["content"]
+        assert "just woken up" in gp and "7 hours" in gp, gp
+        for a in ("turtle", "capybara", "hedgehog"):
+            assert "magpie took" in (work / f"pond/memory/{a}-pond.md").read_text()
+        call(req("/greet", {"visit": "v7", "room": "pond"}))
+        assert sum(kind(b) == "gossip" for _, _, b in seen) == 1, "no second gossip right after"
+        urllib.request.urlopen(base + "/?key=testkey").read()
 
         # Gateway use
         assert all("Authorization" not in h for _, h, _ in seen), "no auth header to the gateway"
