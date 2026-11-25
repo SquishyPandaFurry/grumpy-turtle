@@ -683,8 +683,9 @@ def gossip(hours=WAKE_HOURS):
         max_tokens=500, temperature=1.0,
     )
     lines, remember = parse_gossip(raw)
+    if len(lines) < 3:
+        log(f"gossip: only {len(lines)} lines read from {raw[:400]!r}")
     if len(lines) < 2:
-        log(f"gossip: unusable answer {raw[:120]!r}")
         return []
     append_pond_log(lines)
     if not remember:
