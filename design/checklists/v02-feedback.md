@@ -41,3 +41,4 @@
 - [~] Works on the tablet — yes, but the keyboard leaves half a screen (bugs.md)
 
 ## Part C — anything else you noticed
+- Feedback (2026-11-25): in the Pond chat, the replies feel like one person with three response formats rather than three individual identities, so the conversation reinforces its own content from each character. Bug, queued v03 (bugs.md).
