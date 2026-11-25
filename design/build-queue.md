@@ -9,7 +9,7 @@ One line per item: item — section doc — S/M/L
 - Basic page: one animal, chat box, private link — web-page.md — S
 - Sleep/wake test — infra-connectors.md — S
 
-## v02 — the full pond (Wed)
+## v02 — the full pond (Wed) — BUILT 2026-11-25 (PR #3)
 - Capybara and hedgehog personas (from session with my son) — personas.md — S
 - Three animal cards, pick-an-animal, auto-choose who answers — web-page.md / pond-script.md — M
 - Shared pond log + pond news panel — pond-script.md / web-page.md — S
@@ -24,6 +24,7 @@ One line per item: item — section doc — S/M/L
 - Wake-up detection + gossip — pond-script.md — M
 - Pushover pings — infra-connectors.md — S
 - Memory summarising past ~50 lines — personas.md — S
+- Character knowledge: each animal remembers what happens between the animals, separate from the child's facts — personas.md / pond-script.md — S
 
 ## v04 — Shelly draws (Thu–Fri)
 - Turtle command interpreter → SVG — turtle-drawing.md — M

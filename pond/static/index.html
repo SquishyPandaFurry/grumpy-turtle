@@ -2,79 +2,186 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
 <meta name="referrer" content="no-referrer">
 <title>The Pond</title>
 <style>
-  :root { --water:#cfeee9; --deep:#2f6f6a; --bubble:#ffffff; --me:#ffe7a8; --ink:#1f2d2b; }
+  :root { --water:#cfeee9; --deep:#2f6f6a; --bubble:#ffffff; --me:#ffe7a8; --ink:#1f2d2b; --app-h:100dvh;
+          --msg:1.25rem; --input:1.3rem; --face:2.4rem; }
   * { box-sizing: border-box; }
-  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--water);
-         color:var(--ink); height:100dvh; display:flex; flex-direction:column; }
-  header { background:var(--deep); color:#fff; padding:12px 16px; font-size:1.4rem; font-weight:700; }
-  #chat { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+  html, body { margin:0; height:100%; overflow:hidden; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--water); color:var(--ink); }
+  /* The app is pinned to the visible area, so the on-screen keyboard shrinks the chat
+     instead of pushing the top of the page off screen. */
+  #app { position:fixed; top:0; left:0; right:0; height:var(--app-h); display:flex; flex-direction:column; }
+  header { background:var(--deep); color:#fff; padding:10px 16px; display:flex; align-items:center; gap:12px; }
+  header h1 { font-size:1.3rem; margin:0; flex:1; }
+  #newsBtn { background:#ffffff22; color:#fff; font-size:1rem; padding:6px 12px; }
+  #news { background:#f4fbf9; border-bottom:1px solid #0001; padding:8px 16px; font-size:1rem; display:none;
+          max-height:30vh; overflow-y:auto; }
+  #news.open { display:block; }
+  #news p { margin:4px 0; }
+  nav { display:flex; gap:8px; padding:8px 12px; overflow-x:auto; background:#e6f6f3; border-bottom:1px solid #0001; }
+  .card { flex:1 0 auto; display:flex; flex-direction:column; align-items:center; gap:2px; background:#fff;
+          border:3px solid transparent; border-radius:16px; padding:6px 12px; font-size:1rem; color:var(--ink); min-width:76px; }
+  .card .f { font-size:2rem; line-height:1.1; }
+  .card.on { border-color:var(--deep); background:#fffbe9; }
+  #chats { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .chat { flex:1; overflow-y:auto; padding:16px; display:none; flex-direction:column; gap:12px; min-height:0; }
+  .chat.on { display:flex; }
   .row { display:flex; gap:10px; align-items:flex-end; max-width:720px; }
   .row.me { align-self:flex-end; flex-direction:row-reverse; }
-  .face { font-size:2.4rem; line-height:1; }
-  .bubble { background:var(--bubble); padding:12px 16px; border-radius:18px; font-size:1.25rem;
+  .face { font-size:var(--face); line-height:1; }
+  .bubble { background:var(--bubble); padding:12px 16px; border-radius:18px; font-size:var(--msg);
             line-height:1.4; white-space:pre-wrap; box-shadow:0 1px 2px #0002; }
   .me .bubble { background:var(--me); }
   .who { font-size:.85rem; opacity:.7; margin-bottom:4px; }
-  form { display:flex; gap:8px; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); background:#fff; }
-  input { flex:1; font-size:1.3rem; padding:12px 14px; border:2px solid var(--deep); border-radius:14px; min-width:0; }
-  button { font-size:1.3rem; padding:12px 20px; border:0; border-radius:14px; background:var(--deep); color:#fff; }
+  #picker { display:flex; gap:6px; padding:6px 12px 0; background:#fff; align-items:center; font-size:.95rem; flex-wrap:wrap; }
+  #picker.hide { display:none; }
+  .chip { font-size:1rem; padding:6px 12px; border-radius:999px; background:#eef6f5; color:var(--ink); border:2px solid transparent; }
+  .chip.on { border-color:var(--deep); background:#fffbe9; }
+  form { display:flex; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:#fff; }
+  input { flex:1; font-size:var(--input); padding:12px 14px; border:2px solid var(--deep); border-radius:14px; min-width:0; }
+  button { font-size:var(--input); padding:12px 20px; border:0; border-radius:14px; background:var(--deep); color:#fff; cursor:pointer; }
   button:disabled { opacity:.5; }
+  /* Phones: smaller text. Tablets and bigger keep the big text. */
+  @media (max-width: 600px) {
+    :root { --msg:1rem; --input:1.05rem; --face:1.8rem; }
+    header h1 { font-size:1.1rem; }
+    .chat { padding:10px; gap:8px; }
+    .bubble { padding:8px 12px; border-radius:14px; }
+    .card { min-width:64px; padding:4px 8px; font-size:.85rem; }
+    .card .f { font-size:1.6rem; }
+    button { padding:10px 14px; }
+    input { padding:10px 12px; }
+  }
 </style>
 </head>
 <body>
-<header>🌿 The Pond</header>
-<main id="chat" aria-live="polite"></main>
-<form id="f">
-  <input id="t" autocomplete="off" maxlength="500" placeholder="Say something…" aria-label="Your message">
-  <button id="b">Send</button>
-</form>
+<div id="app">
+  <header><h1>🌿 The Pond</h1><button id="newsBtn" type="button" aria-expanded="false">📰 Pond news</button></header>
+  <section id="news" aria-label="Pond news"></section>
+  <nav id="cards" aria-label="Chats"></nav>
+  <div id="chats"></div>
+  <div id="picker" aria-label="Who should answer?"></div>
+  <form id="f">
+    <input id="t" autocomplete="off" maxlength="500" placeholder="Say something…" aria-label="Your message">
+    <button id="b">Send</button>
+  </form>
+</div>
 <script>
   const ANIMALS = __ANIMALS__;
-  const FACES = { turtle: "🐢", capybara: "🦫", hedgehog: "🦔" };
+  const NEWS = __NEWS__;
   const key = new URLSearchParams(location.search).get("key") || "";
-  const animal = ANIMALS[0];
-  const chat = document.getElementById("chat");
+  // One visit per page load: a reload starts fresh chats (memory files stay).
+  const visit = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/[^A-Za-z0-9-]/g, "");
+  const byId = Object.fromEntries(ANIMALS.map(a => [a.id, a]));
+  const rooms = [{ id: "pond", name: "Pond", face: "🌿" }, ...ANIMALS];
+  const chats = {}, greeted = {};
+  let room = "pond", pick = "";
 
-  function add(who, text, face, mine) {
+  // Keep the app the size of the visible screen when the keyboard opens (tablets).
+  function fit() {
+    const vv = window.visualViewport;
+    document.documentElement.style.setProperty("--app-h", (vv ? vv.height : window.innerHeight) + "px");
+    window.scrollTo(0, 0);
+    const c = chats[room]; if (c) c.scrollTop = c.scrollHeight;
+  }
+  if (window.visualViewport) { visualViewport.addEventListener("resize", fit); visualViewport.addEventListener("scroll", fit); }
+  window.addEventListener("resize", fit);
+
+  // Pond news
+  const news = document.getElementById("news"), newsBtn = document.getElementById("newsBtn");
+  if (!NEWS.length) { const p = document.createElement("p"); p.textContent = "All quiet in the pond today."; news.append(p); }
+  for (const line of NEWS) { const p = document.createElement("p"); p.textContent = line.replace(/^[-*]\s*/, ""); news.append(p); }
+  newsBtn.onclick = () => { const o = news.classList.toggle("open"); newsBtn.setAttribute("aria-expanded", o); fit(); };
+
+  // Cards: the Pond group chat, then a private chat per animal.
+  const cards = document.getElementById("cards");
+  for (const r of rooms) {
+    const c = document.createElement("button");
+    c.type = "button"; c.className = "card"; c.dataset.room = r.id;
+    const f = document.createElement("span"); f.className = "f"; f.textContent = r.face;
+    const n = document.createElement("span"); n.textContent = r.name;
+    c.append(f, n); c.onclick = () => open(r.id); cards.append(c);
+    const box = document.createElement("main"); box.className = "chat"; box.setAttribute("aria-live", "polite");
+    document.getElementById("chats").append(box); chats[r.id] = box;
+  }
+
+  // In the Pond chat, choose who answers (or let the pond choose).
+  const picker = document.getElementById("picker");
+  picker.append("Who answers? ");
+  for (const p of [{ id: "", name: "Anyone", face: "✨" }, ...ANIMALS]) {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "chip" + (p.id === "" ? " on" : ""); b.dataset.pick = p.id;
+    b.textContent = p.face + " " + p.name;
+    b.onclick = () => { pick = p.id; for (const x of picker.querySelectorAll(".chip")) x.classList.toggle("on", x === b); };
+    picker.append(b);
+  }
+
+  function add(r, who, text, face, mine) {
+    const box = chats[r];
     const row = document.createElement("div");
     row.className = "row" + (mine ? " me" : "");
     const f = document.createElement("div"); f.className = "face"; f.textContent = face;
     const wrap = document.createElement("div");
     const name = document.createElement("div"); name.className = "who"; name.textContent = who;
     const b = document.createElement("div"); b.className = "bubble"; b.textContent = text;
-    wrap.append(name, b); row.append(f, wrap); chat.append(row);
-    chat.scrollTop = chat.scrollHeight;
-    return b;
+    wrap.append(name, b); row.append(f, wrap); box.append(row);
+    box.scrollTop = box.scrollHeight;
+    return { row, name, face: f, bubble: b };
   }
 
-  const face = FACES[animal.id] || "🐾";
-  add(animal.name, "Hello there!", face);
+  async function post(path, body) {
+    const r = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Pond-Key": key },
+      body: JSON.stringify({ visit, ...body }),
+    });
+    return r.json().catch(() => ({}));
+  }
+
+  function show(slot, data) {
+    if (data.reply) {
+      slot.name.textContent = data.name; slot.face.textContent = data.face; slot.bubble.textContent = data.reply;
+    } else {
+      slot.bubble.textContent = data.error || "The pond is a bit sleepy. Try again in a moment.";
+    }
+    chats[room].scrollTop = chats[room].scrollHeight;
+  }
+
+  async function open(r) {
+    room = r;
+    for (const c of cards.children) c.classList.toggle("on", c.dataset.room === r);
+    for (const [id, box] of Object.entries(chats)) box.classList.toggle("on", id === r);
+    picker.classList.toggle("hide", r !== "pond");
+    fit();
+    if (greeted[r]) return;
+    greeted[r] = true;
+    const a = byId[r];
+    const slot = add(r, a ? a.name : "The pond", "…", a ? a.face : "🌿");
+    try { show(slot, await post("/greet", { room: r })); }
+    catch { slot.bubble.textContent = "Hello there!"; }
+  }
 
   document.getElementById("f").addEventListener("submit", async (e) => {
     e.preventDefault();
     const input = document.getElementById("t"), btn = document.getElementById("b");
     const text = input.value.trim();
     if (!text) return;
-    add("You", text, "🙂", true);
+    const r = room, a = byId[r === "pond" ? pick : r];
+    add(r, "You", text, "🙂", true);
     input.value = ""; btn.disabled = true;
-    const waiting = add(animal.name, "…", face);
+    const slot = add(r, a ? a.name : "…", "…", a ? a.face : "🌿");
     try {
-      const r = await fetch("/talk", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Pond-Key": key },
-        body: JSON.stringify({ animal: animal.id, text }),
-      });
-      const data = await r.json().catch(() => ({}));
-      waiting.textContent = data.reply || data.error || "The pond is a bit sleepy. Try again in a moment.";
+      show(slot, await post("/talk", { room: r, animal: r === "pond" ? pick : r, text }));
     } catch {
-      waiting.textContent = "The pond is a bit sleepy. Try again in a moment.";
+      slot.bubble.textContent = "The pond is a bit sleepy. Try again in a moment.";
     }
     btn.disabled = false; input.focus();
   });
+
+  open("pond");
 </script>
 </body>
 </html>

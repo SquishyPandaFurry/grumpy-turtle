@@ -1,7 +1,9 @@
 """The pond web server. Python standard library only.
 
 GET  /?key=SECRET   the chat page
-POST /talk          {"animal": "turtle", "text": "..."} with header X-Pond-Key: SECRET
+POST /talk          {"visit": "...", "room": "pond"|"turtle"|..., "animal": "" or id, "text": "..."}
+POST /greet         {"visit": "...", "room": ...}  -> the animal's hello for that chat
+(both POSTs need header X-Pond-Key: SECRET; they answer {"animal", "name", "face", "reply"})
 GET  /health        "ok" (no key needed, says nothing about the pond)
 
 Anything without the right key gets a plain 404, so strangers can't chat or spend credits.
@@ -9,6 +11,7 @@ Anything without the right key gets a plain 404, so strangers can't chat or spen
 import hmac
 import json
 import os
+import re
 import secrets
 import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -21,6 +24,7 @@ HERE = Path(__file__).resolve().parent
 KEY_FILE = HERE / "secret_key.txt"  # gitignored, created on first start
 PORT = int(os.environ.get("POND_PORT", "8080"))
 MAX_BODY = 4096
+VISIT_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
 
 
 def load_key():
@@ -70,30 +74,40 @@ class Handler(BaseHTTPRequestHandler):
             if not key_ok(key):
                 return self._not_found()
             page = (HERE / "static" / "index.html").read_text(encoding="utf-8")
-            animals = [{"id": a, "name": pond.display_name(a)} for a in pond.list_animals()]
-            page = page.replace("__ANIMALS__", json.dumps(animals))
+            page = page.replace("__ANIMALS__", json.dumps(pond.animal_info()))
+            page = page.replace("__NEWS__", json.dumps(pond.read_pond_log()))
             return self._send(200, page, "text/html")
         self._not_found()
 
     def do_POST(self):
-        if urlparse(self.path).path != "/talk" or not key_ok(self.headers.get("X-Pond-Key", "")):
+        path = urlparse(self.path).path
+        if path not in ("/talk", "/greet") or not key_ok(self.headers.get("X-Pond-Key", "")):
             return self._not_found()
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > MAX_BODY:
             return self._send(400, json.dumps({"error": "Message too long."}))
         try:
             req = json.loads(self.rfile.read(length))
-            animal, text = str(req.get("animal", "")), str(req.get("text", ""))
+            visit = str(req.get("visit") or "default")
+            room = str(req.get("room") or req.get("animal") or "")
+            animal = str(req.get("animal") or "")
+            text = str(req.get("text", ""))
         except (ValueError, AttributeError):
             return self._send(400, json.dumps({"error": "Bad request."}))
-        if animal not in pond.list_animals() or not text.strip():
+        animals = pond.list_animals()
+        if (not VISIT_RE.fullmatch(visit) or room not in animals + [pond.POND_ROOM]
+                or (animal and animal not in animals) or (path == "/talk" and not text.strip())):
             return self._send(400, json.dumps({"error": "Bad request."}))
         try:
-            reply = pond.ask(animal, text)
+            if path == "/greet":
+                who, reply = pond.greet(visit, room)
+            else:
+                who, reply = pond.ask(animal or None, text, visit=visit, room=room)
         except pond.PondError as e:
             sys.stderr.write(f"pond error: {e}\n")
             return self._send(502, json.dumps({"error": "The pond is a bit sleepy. Try again in a moment."}))
-        self._send(200, json.dumps({"animal": animal, "reply": reply}))
+        self._send(200, json.dumps({"animal": who, "name": pond.short_name(who),
+                                    "face": pond.face(who), "reply": reply}))
 
 
 def main():

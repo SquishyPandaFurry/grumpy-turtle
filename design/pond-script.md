@@ -38,5 +38,7 @@ The core program. It doesn't think; it builds context for the model and tidies u
 ## Built
 - v01: `ask(animal, text)` steps 2 (persona + memory + message, no pond log yet), 3 (gateway call) and 4 (memory line or NONE). No wake-up, gossip or last_seen yet. Model: `anthropic/claude-haiku-4.5` (`POND_MODEL`).
 
+- v02: prompt = persona + memory + UK time + last 10 pond-log lines + chat (last 10 messages + running summary, per visit and chat, kept in server memory). Pond group chat + private chats; auto-choose (named animal, else a quick model call). `greet()` opens each chat from memory. Memory call logs every answer; non-facts and facts about the animal are dropped. 429s retried (3s, 8s). Not yet: wake-up, gossip, last_seen.
+
 ## Ideas (not agreed)
 - Animals occasionally message first via Pushover ("Hedgehog refuses to come out until someone says sorry").

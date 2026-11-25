@@ -19,6 +19,11 @@ Plain-text files the model reads as instructions. No code in them.
   reply. Give each persona a wider list of things it does and notices around the pond (rain, frogs,
   fish, mud, ducks, night-time, seasons), tell it not to repeat the same topic or phrase it used
   recently, and to answer what the child actually said first.
+- Character knowledge (agreed 2026-11-25): besides what they know about the child, each animal also
+  records what happens between the animals (e.g. "Coco brought me an orange", "Prickles is cross about
+  the warm rock") in a separate file, `memory/<animal>-pond.md`, so gossip and the Pond chat can carry on
+  from earlier. It's kept apart from the child's facts in `memory/<animal>.md` and goes into the prompt
+  under its own heading. One short line at most per exchange, same rules as child memory.
 - Starter draft for the turtle (my son renames and edits):
 
 ```markdown
@@ -40,6 +45,8 @@ Capybara: best friend. Hedgehog: finds her prickliness funny, calls her "young s
 
 ## Built
 - v01: `pond/animals/turtle.md` (starter draft) and shared `pond/animals/rules.md` inserted into each persona. `memory/turtle.md` gets one short line per message at most.
+
+- v02: `capybara.md` (Coco) and `hedgehog.md` (Prickles), draft names until the session with my son; all three have a "Things you do and notice around the pond" list; prompt says answer first, don't repeat; UK time/day/season/dark in every prompt.
 
 ## Ideas (not agreed)
 - Animals react to the real weather (capybara fetches it). (Time of day is now agreed above.)
