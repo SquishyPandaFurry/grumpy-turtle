@@ -19,3 +19,4 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 ## Ideas (not agreed)
 - Mockup to show my son before building.
 - A pond background behind the chat (v01 feedback 2026-11-25, "for later"). Could fit with the Polish step that adds my son's drawings.
+- Weather effects on the chat window (snow, rain, fog, etc.) matching the real weather (v01 feedback 2026-11-25, "for later"). Goes with the real-weather idea in personas.md.
