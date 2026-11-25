@@ -66,7 +66,7 @@ def check_clean_fact():
     import pond
     assert pond.clean_fact("Favourite colour is green.", "turtle") == "Favourite colour is green."
     assert pond.clean_fact("- His dog is called Biscuit", "turtle") == "His dog is called Biscuit"
-    for bad in ("NONE", "None", "none.", "Nothing new.",
+    for bad in ("NONE", "None", "none.", "(none)", "[NONE]", "*None*", "", "Nothing new.",
                 "No new lasting facts to remember. The child only asked a question, and the animal's reply",
                 "The animal's name is Prickles.", "Coco the pond animal loves oranges."):
         assert pond.clean_fact(bad, "hedgehog") is None, bad

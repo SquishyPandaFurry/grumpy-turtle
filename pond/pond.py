@@ -149,7 +149,8 @@ def clean_fact(raw, animal=None):
     line = raw.strip().splitlines()[0].strip()
     line = line.lstrip("-*• ").strip().strip('"').strip()
     line = re.sub(r"[\x00-\x1f<>`]", "", line)
-    if not line or _NOT_A_FACT.search(line):
+    bare = line.strip("()[]{}'\"*_ .!").strip()
+    if not bare or _NOT_A_FACT.search(bare):
         return None
     if animal and re.search(rf"\b{re.escape(short_name(animal))}\b", line, re.I):
         return None   # a fact about the animal itself, not about the child
