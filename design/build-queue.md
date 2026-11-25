@@ -16,6 +16,7 @@ One line per item: item — section doc — S/M/L
 - Chat history: last 10 messages + running summary of older ones (v01 feedback) — pond-script.md / web-page.md — M
 - Friendly greeting on page open, using the animal's memory (v01 feedback) — pond-script.md / web-page.md — S
 - Time of day / day / season in every prompt (v01 feedback) — personas.md / pond-script.md — S
+- Smaller text on phone screens, tablet stays big (v01 feedback) — web-page.md — S
 - Persona variety: wider pond life, don't repeat recent topics, answer the child first (v01 feedback) — personas.md — S
 
 ## v03 — the pond lives (Thu)

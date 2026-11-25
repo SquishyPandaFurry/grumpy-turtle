@@ -34,3 +34,4 @@
 
 ## Part C — anything else you noticed
 - 2026-11-25: Shelly has no sense of time of day; it's always warm and sunny on her rock and that's all she talks about. Wants more variety and answers that fit the context. → Agreed: time/day/season in the prompt + wider persona topics and no repeating (queued v02). Real weather stays an idea.
+- 2026-11-25: on a phone the text is too big, so messages are gigantic. → Agreed: smaller text on phone screens only, tablet keeps big text (queued v02).
