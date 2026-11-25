@@ -34,4 +34,9 @@ The core program. It doesn't think; it builds context for the model and tidies u
 - v01: `ask(animal, text)` steps 2 (persona + memory + message, no pond log yet), 3 (gateway call) and 4 (memory line or NONE). No wake-up, gossip or last_seen yet. Model: `anthropic/claude-haiku-4.5` (`POND_MODEL`).
 
 ## Ideas (not agreed)
+- OPEN QUESTION before v02 (raised in v01 feedback 2026-11-25): how does the chat (last 10 messages +
+  running summary) work with three animals? Option A: one shared group chat, every animal sees the
+  whole chat and replies are labelled with who spoke. Option B: a separate chat per animal card.
+  Note for A: memory files stay per animal, but within one visit every animal would see what was
+  said to the others, which bends "telling the turtle doesn't tell the hedgehog".
 - Animals occasionally message first via Pushover ("Hedgehog refuses to come out until someone says sorry").

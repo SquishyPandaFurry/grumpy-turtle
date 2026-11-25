@@ -36,3 +36,4 @@
 - 2026-11-25: Shelly has no sense of time of day; it's always warm and sunny on her rock and that's all she talks about. Wants more variety and answers that fit the context. → Agreed: time/day/season in the prompt + wider persona topics and no repeating (queued v02). Real weather stays an idea.
 - 2026-11-25: on a phone the text is too big, so messages are gigantic. → Agreed: smaller text on phone screens only, tablet keeps big text (queued v02).
 - 2026-11-25: the screen could do with a little background, for later. → Idea in web-page.md (not queued).
+- 2026-11-25: think about how this chat style works with multiple characters. → Open question in pond-script.md, to settle before the v02 build.
