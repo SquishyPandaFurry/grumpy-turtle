@@ -1,7 +1,9 @@
 # Bugs
 
 ## Open
-(none)
+- **Bedtime takes over every chat** (v02, found 2026-11-25). In the evening, whatever he talks about (hot chocolate, oranges…), the animals keep steering back to bedtime and sleeping because it's late. Expected: they know the time, but mention it only now and then or when it fits (he asks, says goodnight, or it's very late), and otherwise follow what he's talking about. Likely fix: soften the time line in the prompt ("background only, don't keep bringing it up") and count bedtime/sleep as a recent topic not to repeat. — personas.md / pond-script.md
+- **Pond chat sounds like one voice** (v02, found 2026-11-25). In the Pond group chat the replies feel like one person with three response formats, not three individuals, so each animal repeats and reinforces what the others just said. Expected: three distinct characters with their own opinions, interests and ways of reacting, who sometimes disagree, tease or change the subject. Suggested fix: give each persona clear opinions and a "how you react to the others" line; in the Pond prompt, tell the animal not to echo or agree with the last speaker by default, but to react in its own way; consider a different temperature or style hint per animal. — personas.md / pond-script.md
+- **Tablet keyboard still takes half the screen** (v02, found 2026-11-25). The v02 fix works (header, cards and latest message stay on screen), but with the keyboard open only half the screen is left, so very little chat is visible. Suggested fix: while typing, fold the header and cards into a slim bar so more of the chat shows. — web-page.md
 
 ## Fixed
 - v02 (2026-11-25): Shelly not remembering (chat history + memory logging + non-fact filter; tested on the Sprite) and tablet keyboard hiding the top message (app pinned to the visible viewport).

@@ -25,6 +25,11 @@ One line per item: item — section doc — S/M/L
 - Pushover pings — infra-connectors.md — S
 - Memory summarising past ~50 lines — personas.md — S
 - Character knowledge: each animal remembers what happens between the animals, separate from the child's facts — personas.md / pond-script.md — S
+- Final names: Rocky the turtle, Ferdinand the capybara, Colin the hedgehog (v02 feedback) — personas.md — S
+- Private chats know the other animals and the Pond chat, never other private chats (v02 feedback) — pond-script.md — S
+- Bug: Pond chat sounds like one voice; give each animal its own opinions and reactions (v02 feedback) — bugs.md / personas.md — S
+- Bug: bedtime takes over every chat (v02 feedback) — bugs.md / personas.md — S
+- Bug: tablet keyboard leaves half a screen; fold header and cards while typing (v02 feedback) — bugs.md / web-page.md — S
 
 ## v04 — Shelly draws (Thu–Fri)
 - Turtle command interpreter → SVG — turtle-drawing.md — M
