@@ -221,7 +221,7 @@ _NOT_A_FACT = re.compile(
     r"pond animal|already (known|saved|remembered)", re.I)
 
 
-def _clean_line(raw):
+def _clean_line(raw, max_words=20, max_len=MAX_MEMORY_LINE):
     """One safe, short line from a model answer, or None for NONE / an explanation."""
     if not raw or not raw.strip():
         return None
@@ -232,7 +232,7 @@ def _clean_line(raw):
     bare = line.strip("()[]{}'\"*_ .!").strip()
     if not bare or _NOT_A_FACT.search(bare):
         return None
-    if len(line.split()) > 20 or len(line) > MAX_MEMORY_LINE:
+    if len(line.split()) > max_words or len(line) > max_len:
         return None   # an explanation, not a short fact
     return line
 
@@ -693,9 +693,10 @@ def gossip(hours=WAKE_HOURS):
         try:
             gist = call_model([{"role": "system", "content": GOSSIP_GIST_PROMPT},
                                {"role": "user", "content": "\n".join(lines)}], max_tokens=60)
-            remember = _clean_line(gist)   # gossip is shared anyway, so it may mention the child
+            # Gossip is shared anyway, so the gist may mention the child, and it may run a bit long.
+            remember = _clean_line(gist, max_words=30, max_len=220)
             if not remember:
-                log(f"gossip: gist not usable {gist[:120]!r}")
+                log(f"gossip: gist not usable {gist[:300]!r}")
         except PondError as e:
             log(f"gossip gist error: {e}")
     log(f"gossip: {len(lines)} lines, remember {'yes' if remember else 'no'}")

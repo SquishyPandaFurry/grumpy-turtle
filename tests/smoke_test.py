@@ -50,7 +50,8 @@ class FakeGateway(BaseHTTPRequestHandler):
             text = "hedgehog"
         elif k == "gist":
             assert "magpie" in user and "Shark" not in user, user
-            text = "The magpie took Colin's shiny button while the child was away"
+            text = ("The magpie took Colin's shiny button while the child was away, and Rocky told "
+                    "a long story about magpies he once knew")
         elif k == "greet":
             text = "Hello again, friend!"
         else:
