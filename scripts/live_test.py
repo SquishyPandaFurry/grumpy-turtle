@@ -2,14 +2,16 @@
 Run on the Sprite against a test copy, e.g.:
   python3 scripts/live_test.py http://127.0.0.1:8081 <key> <pond folder of that copy>
 """
-import json, sys, urllib.request
+import json, sys, time, urllib.error, urllib.request
 from pathlib import Path
 
 base, key, pond_dir = sys.argv[1].rstrip("/"), sys.argv[2], Path(sys.argv[3])
 visit = "livetest1"
+PAUSE = 10  # seconds between messages: new OpenRouter accounts allow 20 model calls a minute
 
 
 def post(path, body, visit=visit):
+    time.sleep(PAUSE)
     req = urllib.request.Request(base + path, data=json.dumps({"visit": visit, **body}).encode(),
                                  headers={"Content-Type": "application/json", "X-Pond-Key": key})
     try:

@@ -9,6 +9,7 @@ import random
 import re
 import sys
 import threading
+import time
 import urllib.error
 import urllib.request
 from collections import OrderedDict
@@ -49,7 +50,8 @@ MEMORY_PROMPT = (
     "and the animal's reply. Is there one NEW lasting fact about the child worth "
     "remembering (something they like or dislike, a favourite thing, a name they gave "
     "something, a pet, a friend's first name, something they did or will do soon)? "
-    "Ignore greetings and small talk, and anything already in the list of known facts. "
+    "Only facts about the CHILD, never about the animal or the pond. "
+    "Ignore greetings, questions and small talk, and anything already in the list of known facts. "
     "Never save private details like addresses, schools or full names. Answer with ONE "
     "short line under 15 words, written as a fact (e.g. 'His favourite colour is green'), "
     "or exactly NONE."
@@ -135,16 +137,25 @@ def read_pond_log(n=LOG_CONTEXT_LINES):
     return lines[-n:]
 
 
-def clean_fact(raw):
-    """Turn the model's memory answer into one safe line, or None."""
-    if not raw:
+_NOT_A_FACT = re.compile(
+    r"^(none|nothing|no\b|n/a)|no (new )?(lasting )?facts?|nothing (new|worth)|the animal|"
+    r"pond animal|already (known|saved|remembered)", re.I)
+
+
+def clean_fact(raw, animal=None):
+    """Turn the model's memory answer into one safe line about the child, or None."""
+    if not raw or not raw.strip():
         return None
-    line = raw.strip().splitlines()[0].strip() if raw.strip() else ""
+    line = raw.strip().splitlines()[0].strip()
     line = line.lstrip("-*• ").strip().strip('"').strip()
-    if not line or line.upper().rstrip(".") == "NONE":
-        return None
     line = re.sub(r"[\x00-\x1f<>`]", "", line)
-    return line[:MAX_MEMORY_LINE] or None
+    if not line or _NOT_A_FACT.search(line):
+        return None
+    if animal and re.search(rf"\b{re.escape(short_name(animal))}\b", line, re.I):
+        return None   # a fact about the animal itself, not about the child
+    if len(line.split()) > 20 or len(line) > MAX_MEMORY_LINE:
+        return None   # an explanation, not a short fact
+    return line
 
 
 # ---------- time of day (UK) ----------
@@ -252,7 +263,26 @@ def _roll_summary(chat):
 
 # ---------- model calls ----------
 
+RETRY_WAITS = [float(x) for x in os.environ.get("POND_RETRY_WAITS", "3,8").split(",") if x]
+
+
 def call_model(messages, max_tokens=300):
+    """Model call; on a rate limit (429) waits a few seconds and tries again."""
+    for wait in RETRY_WAITS + [None]:
+        try:
+            return _call_model(messages, max_tokens)
+        except RateLimited as e:
+            if wait is None:
+                raise PondError(str(e)) from e
+            log(f"rate limited, retrying in {wait:g}s")
+            time.sleep(wait)
+
+
+class RateLimited(Exception):
+    pass
+
+
+def _call_model(messages, max_tokens=300):
     if not CONNECTION_ID and "POND_GATEWAY_BASE" not in os.environ:
         raise PondError("POND_CONNECTION_ID is not set.")
     body = json.dumps({"model": MODEL, "messages": messages, "max_tokens": max_tokens}).encode()
@@ -267,6 +297,8 @@ def call_model(messages, max_tokens=300):
             data = json.load(resp)
     except urllib.error.HTTPError as e:
         detail = e.read()[:300].decode(errors="replace")
+        if e.code == 429:
+            raise RateLimited(f"Gateway said 429: {detail}") from e
         raise PondError(f"Gateway said {e.code}: {detail}") from e
     except (urllib.error.URLError, TimeoutError) as e:
         raise PondError(f"Could not reach the gateway: {e}") from e
@@ -322,7 +354,7 @@ def _remember(animal, text, reply):
     except PondError as e:
         log(f"memory {animal}: error: {e}")
         return
-    fact = clean_fact(raw)
+    fact = clean_fact(raw, animal)
     log(f"memory {animal}: {'saved' if fact else 'nothing'} (model said {raw[:80]!r})")
     if fact:
         append_memory(animal, fact)

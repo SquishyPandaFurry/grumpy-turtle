@@ -25,6 +25,11 @@ class FakeGateway(BaseHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         seen.append((self.path, dict(self.headers), body))
         k, user = kind(body), body["messages"][-1]["content"]
+        if "please rate limit" in user and not getattr(FakeGateway, "limited", False):
+            FakeGateway.limited = True
+            out = b'{"error":{"message":"Rate limit exceeded","code":429}}'
+            self.send_response(429); self.send_header("Content-Length", str(len(out))); self.end_headers()
+            self.wfile.write(out); return
         system = body["messages"][0]["content"]
         if k == "memory":
             said = user.split("Child said:")[1]
@@ -57,14 +62,26 @@ def check_time_of_day():
     assert "Saturday" in s and "weekend" in s and "bedtime" in s and "winter" in s, s
 
 
+def check_clean_fact():
+    import pond
+    assert pond.clean_fact("Favourite colour is green.", "turtle") == "Favourite colour is green."
+    assert pond.clean_fact("- His dog is called Biscuit", "turtle") == "His dog is called Biscuit"
+    for bad in ("NONE", "None", "none.", "Nothing new.",
+                "No new lasting facts to remember. The child only asked a question, and the animal's reply",
+                "The animal's name is Prickles.", "Coco the pond animal loves oranges."):
+        assert pond.clean_fact(bad, "hedgehog") is None, bad
+    assert pond.clean_fact("Prickles is his favourite", "hedgehog") is None
+
+
 def main():
     check_time_of_day()
+    check_clean_fact()
     gw = ThreadingHTTPServer(("127.0.0.1", 0), FakeGateway)
     threading.Thread(target=gw.serve_forever, daemon=True).start()
     work = Path(tempfile.mkdtemp()); shutil.copytree(ROOT / "pond", work / "pond")
     (work / "pond/pond_log.md").write_text("- Hedgehog found a shiny button.\n")
     env = dict(os.environ, POND_PORT="18080", POND_KEY="testkey",
-               POND_GATEWAY_BASE=f"http://127.0.0.1:{gw.server_port}/api/v1")
+               POND_GATEWAY_BASE=f"http://127.0.0.1:{gw.server_port}/api/v1", POND_RETRY_WAITS="0.2")
     srv = subprocess.Popen([sys.executable, "server.py"], cwd=work / "pond", env=env,
                            stderr=open(work / "server.log", "w"))
     base = "http://127.0.0.1:18080"
@@ -159,6 +176,11 @@ def main():
         # A new visit starts fresh
         call(talk("hello", visit="v3"))
         assert "(nothing yet)" in chat_prompts()[-1]["messages"][1]["content"]
+
+        # A rate limit (429) is retried once
+        r = call(talk("please rate limit me", visit="v4"))
+        assert r["reply"].startswith("Ahh") and FakeGateway.limited, r
+        assert "rate limited, retrying" in (work / "server.log").read_text()
 
         # Gateway use
         assert all("Authorization" not in h for _, h, _ in seen), "no auth header to the gateway"
