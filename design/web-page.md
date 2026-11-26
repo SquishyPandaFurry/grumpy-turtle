@@ -18,6 +18,8 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 
 - v02: 🌿 Pond card + one card per animal (emoji until the drawings), private chat per card, "Who answers?" chips in the Pond chat, greeting per chat, 📰 Pond news panel, smaller text under 600px, app pinned to the visible viewport so the tablet keyboard doesn't hide the top. `POST /greet` added.
 
+- v03: while typing on a touch screen, header and cards fold into a slim bar (tap to unfold); the greeting refreshes the 📰 Pond news panel, with a dot for new gossip.
+
 ## Ideas (not agreed)
 - Mockup to show my son before building.
 - A pond background behind the chat (v01 feedback 2026-11-25, "for later"). Could fit with the Polish step that adds my son's drawings.

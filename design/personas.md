@@ -52,6 +52,7 @@ Capybara: best friend. Hedgehog: finds her prickliness funny, calls her "young s
 - v01: `pond/animals/turtle.md` (starter draft) and shared `pond/animals/rules.md` inserted into each persona. `memory/turtle.md` gets one short line per message at most.
 
 - v02: `capybara.md` (Coco) and `hedgehog.md` (Prickles), draft names until the session with my son; all three have a "Things you do and notice around the pond" list; prompt says answer first, don't repeat; UK time/day/season/dark in every prompt.
+- v03: final names Rocky / Ferdinand / Colin; "Your opinions" and "How you react to the others" in each persona; character knowledge in `memory/<animal>-pond.md` (from the Pond chat and from gossip, never from private chats); memory files over 50 lines are summarised to at most 25 (old copy kept as `.bak`); time of day is background only (bedtime only when it fits).
 
 ## Ideas (not agreed)
 - Animals react to the real weather (capybara fetches it). (Time of day is now agreed above.)

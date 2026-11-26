@@ -39,3 +39,4 @@ Names, ages, foods and quirks are chosen by my son (see `personas.md`).
 - 2026-11-24 — project set up; v01–v04 queued from the agreed plan.
 - 2026-11-24 — v01 built and merged (PR #1): Shelly the turtle chats on the private page, with memory; pond service on the Sprite.
 - 2026-11-25 — v02 built and merged (PR #3): Coco the capybara and Prickles the hedgehog (draft names), Pond group chat + private chats, last 10 + summary, greeting from memory, UK time of day, persona variety, phone text; fixed tablet keyboard and memory saving; 429 retry.
+- 2026-11-26 — v03 built and merged (PR #5): final names Rocky / Ferdinand / Colin, character knowledge, private chats know the Pond chat, memory summarising, wake-up gossip; fixed bedtime takeover, one-voice Pond chat, tablet keyboard space. Pushover still to come.
