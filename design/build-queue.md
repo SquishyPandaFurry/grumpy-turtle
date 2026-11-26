@@ -20,9 +20,9 @@ One line per item: item — section doc — S/M/L
 - Smaller text on phone screens, tablet stays big (v01 feedback) — web-page.md — S
 - Persona variety: wider pond life, don't repeat recent topics, answer the child first (v01 feedback) — personas.md — S
 
-## v03 — the pond lives (Thu)
+## v03 — the pond lives (Thu) — BUILT 2026-11-26 (PR #5), except Pushover
+- Pushover pings — infra-connectors.md — S (still open: needs a Pushover connector on the Sprite)
 - Wake-up detection + gossip — pond-script.md — M
-- Pushover pings — infra-connectors.md — S
 - Memory summarising past ~50 lines — personas.md — S
 - Character knowledge: each animal remembers what happens between the animals, separate from the child's facts — personas.md / pond-script.md — S
 - Final names: Rocky the turtle, Ferdinand the capybara, Colin the hedgehog (v02 feedback) — personas.md — S

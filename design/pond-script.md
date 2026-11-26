@@ -45,5 +45,7 @@ The core program. It doesn't think; it builds context for the model and tidies u
 
 - v02: prompt = persona + memory + UK time + last 10 pond-log lines + chat (last 10 messages + running summary, per visit and chat, kept in server memory). Pond group chat + private chats; auto-choose (named animal, else a quick model call). `greet()` opens each chat from memory. Memory call logs every answer; non-facts and facts about the animal are dropped. 429s retried (3s, 8s). Not yet: wake-up, gossip, last_seen.
 
+- v03: private chats see the other animals and this visit's Pond chat (never another private chat; checked on the Sprite); Pond prompt says don't echo the last speaker, temperature per animal (0.6 / 0.85 / 1.0); memory call answers CHILD + POND in one call; `last_seen.txt` and wake-up after 6h (`POND_WAKE_HOURS`): 4 lines of gossip into `pond_log.md`, a short gist call saves what happened to each pond memory, the greeting mentions the wake-up. Not yet: Pushover.
+
 ## Ideas (not agreed)
 - Animals occasionally message first via Pushover ("Hedgehog refuses to come out until someone says sorry").

@@ -45,6 +45,16 @@
   button { font-size:var(--input); padding:12px 20px; border:0; border-radius:14px; background:var(--deep); color:#fff; cursor:pointer; }
   button:disabled { opacity:.5; }
   /* Phones: smaller text. Tablets and bigger keep the big text. */
+  #newsBtn.new::after { content:" •"; color:#ffe7a8; }
+  /* While typing on a tablet or phone, the header and cards fold into a slim bar so more
+     of the chat shows above the keyboard. Tap the bar to unfold. */
+  header .now { display:none; }
+  #app.typing header { padding:4px 12px; }
+  #app.typing header h1 { font-size:1rem; }
+  #app.typing header .now { display:inline; }
+  #app.typing #newsBtn, #app.typing #news, #app.typing nav { display:none; }
+  #app.typing #picker { padding-top:4px; }
+  #app.typing .chip { padding:3px 10px; font-size:.9rem; }
   @media (max-width: 600px) {
     :root { --msg:1rem; --input:1.05rem; --face:1.8rem; }
     header h1 { font-size:1.1rem; }
@@ -59,7 +69,7 @@
 </head>
 <body>
 <div id="app">
-  <header><h1>🌿 The Pond</h1><button id="newsBtn" type="button" aria-expanded="false">📰 Pond news</button></header>
+  <header id="bar"><h1>🌿 The Pond<span class="now" id="now"></span></h1><button id="newsBtn" type="button" aria-expanded="false">📰 Pond news</button></header>
   <section id="news" aria-label="Pond news"></section>
   <nav id="cards" aria-label="Chats"></nav>
   <div id="chats"></div>
@@ -81,20 +91,43 @@
   let room = "pond", pick = "";
 
   // Keep the app the size of the visible screen when the keyboard opens (tablets).
+  const app = document.getElementById("app"), input = document.getElementById("t");
+  const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
+  let tallest = 0;
   function fit() {
     const vv = window.visualViewport;
-    document.documentElement.style.setProperty("--app-h", (vv ? vv.height : window.innerHeight) + "px");
+    const h = vv ? vv.height : window.innerHeight;
+    tallest = Math.max(tallest, h);
+    document.documentElement.style.setProperty("--app-h", h + "px");
+    // Fold the top while the on-screen keyboard is up (not on a computer with a real keyboard).
+    app.classList.toggle("typing", document.activeElement === input && (touch || h < tallest * 0.75));
     window.scrollTo(0, 0);
     const c = chats[room]; if (c) c.scrollTop = c.scrollHeight;
   }
   if (window.visualViewport) { visualViewport.addEventListener("resize", fit); visualViewport.addEventListener("scroll", fit); }
   window.addEventListener("resize", fit);
+  input.addEventListener("focus", () => setTimeout(fit, 50));
+  input.addEventListener("blur", () => setTimeout(fit, 50));
+  document.getElementById("bar").addEventListener("click", (e) => {
+    if (app.classList.contains("typing") && e.target !== newsBtn) input.blur();
+  });
 
   // Pond news
   const news = document.getElementById("news"), newsBtn = document.getElementById("newsBtn");
-  if (!NEWS.length) { const p = document.createElement("p"); p.textContent = "All quiet in the pond today."; news.append(p); }
-  for (const line of NEWS) { const p = document.createElement("p"); p.textContent = line.replace(/^[-*]\s*/, ""); news.append(p); }
-  newsBtn.onclick = () => { const o = news.classList.toggle("open"); newsBtn.setAttribute("aria-expanded", o); fit(); };
+  let newsShown = [];
+  function showNews(lines) {
+    news.replaceChildren();
+    if (!lines.length) { const p = document.createElement("p"); p.textContent = "All quiet in the pond today."; news.append(p); }
+    for (const line of lines) { const p = document.createElement("p"); p.textContent = line.replace(/^[-*]\s*/, ""); news.append(p); }
+    newsShown = lines;
+  }
+  showNews(NEWS);
+  // After a long quiet spell the animals gossip on wake-up; the greeting brings the fresh news.
+  function freshNews(lines) {
+    if (!Array.isArray(lines) || lines.join("\n") === newsShown.join("\n")) return;
+    showNews(lines); newsBtn.classList.add("new");
+  }
+  newsBtn.onclick = () => { const o = news.classList.toggle("open"); newsBtn.setAttribute("aria-expanded", o); newsBtn.classList.remove("new"); fit(); };
 
   // Cards: the Pond group chat, then a private chat per animal.
   const cards = document.getElementById("cards");
@@ -155,12 +188,14 @@
     for (const c of cards.children) c.classList.toggle("on", c.dataset.room === r);
     for (const [id, box] of Object.entries(chats)) box.classList.toggle("on", id === r);
     picker.classList.toggle("hide", r !== "pond");
+    const cur = rooms.find(x => x.id === r);
+    document.getElementById("now").textContent = " · " + cur.face + " " + cur.name;
     fit();
     if (greeted[r]) return;
     greeted[r] = true;
     const a = byId[r];
     const slot = add(r, a ? a.name : "The pond", "…", a ? a.face : "🌿");
-    try { show(slot, await post("/greet", { room: r })); }
+    try { const g = await post("/greet", { room: r }); show(slot, g); freshNews(g.news); }
     catch { slot.bubble.textContent = "Hello there!"; }
   }
 

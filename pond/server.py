@@ -2,7 +2,7 @@
 
 GET  /?key=SECRET   the chat page
 POST /talk          {"visit": "...", "room": "pond"|"turtle"|..., "animal": "" or id, "text": "..."}
-POST /greet         {"visit": "...", "room": ...}  -> the animal's hello for that chat
+POST /greet         {"visit": "...", "room": ...}  -> the animal's hello for that chat (+ "news")
 (both POSTs need header X-Pond-Key: SECRET; they answer {"animal", "name", "face", "reply"})
 GET  /health        "ok" (no key needed, says nothing about the pond)
 
@@ -14,6 +14,7 @@ import os
 import re
 import secrets
 import sys
+import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -73,6 +74,8 @@ class Handler(BaseHTTPRequestHandler):
             key = parse_qs(url.query).get("key", [""])[0]
             if not key_ok(key):
                 return self._not_found()
+            # Start the wake-up check (and any gossip) now; the greeting waits for it.
+            threading.Thread(target=pond.check_wake, daemon=True).start()
             page = (HERE / "static" / "index.html").read_text(encoding="utf-8")
             page = page.replace("__ANIMALS__", json.dumps(pond.animal_info()))
             page = page.replace("__NEWS__", json.dumps(pond.read_pond_log()))
@@ -106,8 +109,10 @@ class Handler(BaseHTTPRequestHandler):
         except pond.PondError as e:
             sys.stderr.write(f"pond error: {e}\n")
             return self._send(502, json.dumps({"error": "The pond is a bit sleepy. Try again in a moment."}))
-        self._send(200, json.dumps({"animal": who, "name": pond.short_name(who),
-                                    "face": pond.face(who), "reply": reply}))
+        out = {"animal": who, "name": pond.short_name(who), "face": pond.face(who), "reply": reply}
+        if path == "/greet":
+            out["news"] = pond.read_pond_log()   # gossip may have just happened on wake-up
+        self._send(200, json.dumps(out))
 
 
 def main():
