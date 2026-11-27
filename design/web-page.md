@@ -21,6 +21,8 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 
 - v03: while typing on a touch screen, header and cards fold into a slim bar (tap to unfold); the greeting refreshes the 📰 Pond news panel, with a dot for new gossip.
 
+- v04: 👋 Everyone chip; several replies show one after another; Rocky's drawings animate in his bubble; 🖍️ draw-your-own box; latest picture at the top of 📰 Pond news; out-of-credit message "The animals are fast asleep right now 💤 Ask a grown-up to wake up the pond."
+
 ## Ideas (not agreed)
 - Mockup to show my son before building.
 - A pond background behind the chat (v01 feedback 2026-11-25, "for later"). Could fit with the Polish step that adds my son's drawings.

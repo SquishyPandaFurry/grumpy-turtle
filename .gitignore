@@ -5,3 +5,4 @@ pond/last_seen.txt
 pond/secret_key.txt
 __pycache__/
 *.pyc
+pond/picture.json

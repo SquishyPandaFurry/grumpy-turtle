@@ -12,6 +12,10 @@ Shelly the turtle draws pictures with classic turtle-graphics commands.
 - Cap command count / canvas bounds so a bad drawing can't hang the page.
 
 ## Built
+- v04: `pond/turtle_draw.py` interprets FORWARD/FD, BACK/BK, LEFT/LT, RIGHT/RT, PENUP/PU, PENDOWN/PD, COLOUR/COLOR (15 named colours), REPEAT n [ ... ] into line segments; caps: 600 tokens, REPEAT ≤ 72, 4 levels deep, 4000 steps, 1500 lines, canvas ±200. Never runs model text.
+- v04: Rocky's prompt has a Drawing section; a `<draw>` block in his reply becomes a drawing (other animals' blocks are dropped). The page draws it slowly in the bubble (whole picture in ≤ 14 s) with a 🐢 following the pen.
+- v04: morning picture after each wake-up gossip (one model call: title, commands, Colin's critique, Ferdinand's delight) saved to `pond/picture.json`, announced in pond news, drawn at the top of 📰 Pond news.
+- v04: 🖍️ button (Rocky's chat and the Pond chat) opens a commands box with Square / Star / Sun / Flower examples; `POST /draw` interprets without a model call and Rocky knows the child drew.
 
 ## Ideas (not agreed)
 - Gallery of past drawings.

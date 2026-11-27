@@ -31,7 +31,7 @@ One line per item: item — section doc — S/M/L
 - Bug: bedtime takes over every chat (v02 feedback) — bugs.md / personas.md — S
 - Bug: tablet keyboard leaves half a screen; fold header and cards while typing (v02 feedback) — bugs.md / web-page.md — S
 
-## v04 — Rocky draws (Thu–Fri)
+## v04 — Rocky draws (Thu–Fri) — BUILT 2026-11-27 (PR pending)
 - "Everyone" in the Pond chat: the chooser can pick all, so 2-3 animals reply in turn, each seeing the earlier replies; "Everyone" chip next to "Who answers?" (v03 feedback) — pond-script.md / web-page.md — M
 - Bug: animals keep reassuring and checking on him; make it a friendly chat among the animals (v03 feedback) — bugs.md / personas.md — S
 - Bug: every greeting latches onto the same fact (kickboxing, school) (v03 feedback) — bugs.md / pond-script.md — S

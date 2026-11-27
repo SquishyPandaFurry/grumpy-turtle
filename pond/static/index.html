@@ -53,8 +53,22 @@
   #app.typing header h1 { font-size:1rem; }
   #app.typing header .now { display:inline; }
   #app.typing #newsBtn, #app.typing #news, #app.typing nav { display:none; }
+  #app.typing #drawBox .help, #app.typing #drawBox .ex { display:none; }
   #app.typing #picker { padding-top:4px; }
   #app.typing .chip { padding:3px 10px; font-size:.9rem; }
+  /* Rocky's drawings */
+  .pic { display:block; width:100%; max-width:320px; aspect-ratio:1; background:#fffdf5; border-radius:12px;
+         margin-top:8px; box-shadow:inset 0 0 0 2px #e8dfc4; }
+  .pic line { stroke-width:3; stroke-linecap:round; }
+  #news .pic { max-width:220px; }
+  #drawBox { display:none; background:#fffdf5; border-top:1px solid #0001; padding:8px 12px; }
+  #drawBox.open { display:block; }
+  #drawBox textarea { width:100%; font-size:var(--input); font-family:ui-monospace, Menlo, Consolas, monospace;
+                      border:2px solid var(--deep); border-radius:12px; padding:8px 10px; min-height:3.2em; }
+  #drawBox .help { font-size:.9rem; opacity:.75; margin:2px 0 6px; }
+  #drawBox .row2 { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+  #drawBtn { font-size:var(--input); padding:12px 14px; background:#efe6c8; color:var(--ink); }
+  #drawBtn.hide { display:none; }
   @media (max-width: 600px) {
     :root { --msg:1rem; --input:1.05rem; --face:1.8rem; }
     header h1 { font-size:1.1rem; }
@@ -74,7 +88,13 @@
   <nav id="cards" aria-label="Chats"></nav>
   <div id="chats"></div>
   <div id="picker" aria-label="Who should answer?"></div>
+  <div id="drawBox" aria-label="Your turn to draw">
+    <div class="help">🖍️ Type turtle commands and Rocky draws them: FORWARD 50 · BACK 20 · LEFT 90 · RIGHT 90 · PENUP · PENDOWN · COLOUR red · REPEAT 4 [ FORWARD 50 RIGHT 90 ]</div>
+    <textarea id="cmds" maxlength="500" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Turtle commands" placeholder="REPEAT 4 [ FORWARD 80 RIGHT 90 ]"></textarea>
+    <div class="row2"><button id="go" type="button">🐢 Draw!</button></div>
+  </div>
   <form id="f">
+    <button id="drawBtn" type="button" title="Your turn to draw" aria-label="Your turn to draw" aria-expanded="false">🖍️</button>
     <input id="t" autocomplete="off" maxlength="500" placeholder="Say something…" aria-label="Your message">
     <button id="b">Send</button>
   </form>
@@ -82,6 +102,7 @@
 <script>
   const ANIMALS = __ANIMALS__;
   const NEWS = __NEWS__;
+  const PICTURE = __PICTURE__;
   const key = new URLSearchParams(location.search).get("key") || "";
   // One visit per page load: a reload starts fresh chats (memory files stay).
   const visit = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2)).replace(/[^A-Za-z0-9-]/g, "");
@@ -91,7 +112,7 @@
   let room = "pond", pick = "";
 
   // Keep the app the size of the visible screen when the keyboard opens (tablets).
-  const app = document.getElementById("app"), input = document.getElementById("t");
+  const app = document.getElementById("app"), input = document.getElementById("t"), cmds = document.getElementById("cmds");
   const touch = window.matchMedia && matchMedia("(pointer: coarse)").matches;
   let tallest = 0;
   function fit() {
@@ -100,34 +121,89 @@
     tallest = Math.max(tallest, h);
     document.documentElement.style.setProperty("--app-h", h + "px");
     // Fold the top while the on-screen keyboard is up (not on a computer with a real keyboard).
-    app.classList.toggle("typing", document.activeElement === input && (touch || h < tallest * 0.75));
+    const typingIn = document.activeElement === input || document.activeElement === cmds;
+    app.classList.toggle("typing", typingIn && (touch || h < tallest * 0.75));
     window.scrollTo(0, 0);
     const c = chats[room]; if (c) c.scrollTop = c.scrollHeight;
   }
   if (window.visualViewport) { visualViewport.addEventListener("resize", fit); visualViewport.addEventListener("scroll", fit); }
   window.addEventListener("resize", fit);
-  input.addEventListener("focus", () => setTimeout(fit, 50));
-  input.addEventListener("blur", () => setTimeout(fit, 50));
+  for (const el of [input, cmds]) {
+    el.addEventListener("focus", () => setTimeout(fit, 50));
+    el.addEventListener("blur", () => setTimeout(fit, 50));
+  }
   document.getElementById("bar").addEventListener("click", (e) => {
-    if (app.classList.contains("typing") && e.target !== newsBtn) input.blur();
+    if (app.classList.contains("typing") && e.target !== newsBtn) document.activeElement.blur();
   });
+
+  // Rocky's drawings: drawn slowly, line by line, with a little turtle following the pen.
+  const SVG = "http://www.w3.org/2000/svg";
+  function drawPicture(drawing, into) {
+    const segs = (drawing && Array.isArray(drawing.segments)) ? drawing.segments.slice(0, 1500) : [];
+    const svg = document.createElementNS(SVG, "svg");
+    svg.setAttribute("class", "pic"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "Rocky's drawing");
+    let x0 = 0, x1 = 0, y0 = 0, y1 = 0;
+    for (const [a, b, c, d] of segs) { x0 = Math.min(x0, a, c); x1 = Math.max(x1, a, c); y0 = Math.min(y0, -b, -d); y1 = Math.max(y1, -b, -d); }
+    const size = Math.max(x1 - x0, y1 - y0, 60) + 40, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    svg.setAttribute("viewBox", `${cx - size / 2} ${cy - size / 2} ${size} ${size}`);
+    const lines = document.createElementNS(SVG, "g"); svg.append(lines);
+    const t = document.createElementNS(SVG, "text");
+    t.textContent = "🐢"; t.setAttribute("font-size", size / 9); t.setAttribute("text-anchor", "middle");
+    t.setAttribute("dominant-baseline", "central"); svg.append(t);
+    into.append(svg);
+    const per = Math.min(140, Math.max(12, 14000 / Math.max(segs.length, 1)));   // whole drawing in ~14s at most
+    let i = 0, start = null;
+    const place = (x, y) => { t.setAttribute("x", x); t.setAttribute("y", y); };
+    place(0, 0);
+    function step(now) {
+      if (i >= segs.length) { setTimeout(() => t.remove(), 1200); return; }
+      if (!svg.isConnected) return;
+      const [a, b, c, d, col] = segs[i];
+      let ln = lines.lastChild;
+      if (start === null) {
+        start = now; ln = document.createElementNS(SVG, "line");
+        ln.setAttribute("x1", a); ln.setAttribute("y1", -b); ln.setAttribute("stroke", /^#[0-9a-f]{6}$/i.test(col) ? col : "#2f6f6a");
+        lines.append(ln);
+      }
+      const k = Math.min(1, (now - start) / per);
+      const x = a + (c - a) * k, y = -b + (-d + b) * k;
+      ln.setAttribute("x2", x); ln.setAttribute("y2", y); place(x, y);
+      if (k >= 1) { i++; start = null; }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+    return svg;
+  }
 
   // Pond news
   const news = document.getElementById("news"), newsBtn = document.getElementById("newsBtn");
-  let newsShown = [];
+  let newsShown = [], picShown = PICTURE, picDrawn = false;
+  function showPicture() {
+    if (!picShown || !news.classList.contains("open") || picDrawn) return;
+    picDrawn = true;
+    const box = document.createElement("div"); box.className = "picbox";
+    const p = document.createElement("p"); p.textContent = "🎨 Rocky's latest picture: " + picShown.title;
+    box.append(p); news.prepend(box); drawPicture(picShown, box);
+  }
   function showNews(lines) {
-    news.replaceChildren();
+    news.replaceChildren(); picDrawn = false;
     if (!lines.length) { const p = document.createElement("p"); p.textContent = "All quiet in the pond today."; news.append(p); }
     for (const line of lines) { const p = document.createElement("p"); p.textContent = line.replace(/^[-*]\s*/, ""); news.append(p); }
     newsShown = lines;
+    showPicture();
   }
   showNews(NEWS);
   // After a long quiet spell the animals gossip on wake-up; the greeting brings the fresh news.
-  function freshNews(lines) {
+  function freshNews(lines, pic) {
+    if (pic && (!picShown || pic.at !== picShown.at)) { picShown = pic; picDrawn = false; }
     if (!Array.isArray(lines) || lines.join("\n") === newsShown.join("\n")) return;
     showNews(lines); newsBtn.classList.add("new");
   }
-  newsBtn.onclick = () => { const o = news.classList.toggle("open"); newsBtn.setAttribute("aria-expanded", o); newsBtn.classList.remove("new"); fit(); };
+  newsBtn.onclick = () => {
+    const o = news.classList.toggle("open"); newsBtn.setAttribute("aria-expanded", o); newsBtn.classList.remove("new");
+    if (o) showNews(newsShown);
+    fit();
+  };
 
   // Cards: the Pond group chat, then a private chat per animal.
   const cards = document.getElementById("cards");
@@ -144,7 +220,7 @@
   // In the Pond chat, choose who answers (or let the pond choose).
   const picker = document.getElementById("picker");
   picker.append("Who answers? ");
-  for (const p of [{ id: "", name: "Anyone", face: "✨" }, ...ANIMALS]) {
+  for (const p of [{ id: "", name: "Anyone", face: "✨" }, ...ANIMALS, { id: "all", name: "Everyone", face: "👋" }]) {
     const b = document.createElement("button");
     b.type = "button"; b.className = "chip" + (p.id === "" ? " on" : ""); b.dataset.pick = p.id;
     b.textContent = p.face + " " + p.name;
@@ -174,13 +250,25 @@
     return r.json().catch(() => ({}));
   }
 
-  function show(slot, data) {
+  function show(slot, data, r) {
     if (data.reply) {
       slot.name.textContent = data.name; slot.face.textContent = data.face; slot.bubble.textContent = data.reply;
+      if (data.drawing) drawPicture(data.drawing, slot.bubble);
     } else {
       slot.bubble.textContent = data.error || "The pond is a bit sleepy. Try again in a moment.";
     }
-    chats[room].scrollTop = chats[room].scrollHeight;
+    const box = chats[r || room]; box.scrollTop = box.scrollHeight;
+  }
+  const pause = (ms) => new Promise(res => setTimeout(res, ms));
+  // Several animals may answer (Everyone): show them one after another.
+  async function showAll(slot, data, r) {
+    const list = Array.isArray(data.replies) && data.replies.length ? data.replies : [data];
+    show(slot, list[0], r);
+    for (const next of list.slice(1)) {
+      const s = add(r, "…", "…", next.face);
+      await pause(900 + Math.min(1500, (list[0].reply || "").length * 8));
+      show(s, next, r);
+    }
   }
 
   async function open(r) {
@@ -188,6 +276,9 @@
     for (const c of cards.children) c.classList.toggle("on", c.dataset.room === r);
     for (const [id, box] of Object.entries(chats)) box.classList.toggle("on", id === r);
     picker.classList.toggle("hide", r !== "pond");
+    const canDraw = r === "pond" || r === "turtle";
+    drawBtn.classList.toggle("hide", !canDraw);
+    if (!canDraw) setDrawBox(false);
     const cur = rooms.find(x => x.id === r);
     document.getElementById("now").textContent = " · " + cur.face + " " + cur.name;
     fit();
@@ -195,7 +286,7 @@
     greeted[r] = true;
     const a = byId[r];
     const slot = add(r, a ? a.name : "The pond", "…", a ? a.face : "🌿");
-    try { const g = await post("/greet", { room: r }); show(slot, g); freshNews(g.news); }
+    try { const g = await post("/greet", { room: r }); show(slot, g, r); freshNews(g.news, g.picture); }
     catch { slot.bubble.textContent = "Hello there!"; }
   }
 
@@ -205,16 +296,43 @@
     const text = input.value.trim();
     if (!text) return;
     const r = room, a = byId[r === "pond" ? pick : r];
+    const everyone = r === "pond" && pick === "all";
     add(r, "You", text, "🙂", true);
     input.value = ""; btn.disabled = true;
-    const slot = add(r, a ? a.name : "…", "…", a ? a.face : "🌿");
+    const slot = add(r, a ? a.name : "…", "…", a ? a.face : (everyone ? "👋" : "🌿"));
     try {
-      show(slot, await post("/talk", { room: r, animal: r === "pond" ? pick : r, text }));
+      await showAll(slot, await post("/talk", { room: r, animal: r === "pond" ? pick : r, text }), r);
     } catch {
       slot.bubble.textContent = "The pond is a bit sleepy. Try again in a moment.";
     }
     btn.disabled = false; input.focus();
   });
+
+  // Your turn to draw: the child types turtle commands and Rocky draws them.
+  const drawBtn = document.getElementById("drawBtn"), drawBox = document.getElementById("drawBox");
+  function setDrawBox(on) {
+    drawBox.classList.toggle("open", on); drawBtn.setAttribute("aria-expanded", on); fit();
+  }
+  drawBtn.onclick = () => { const on = !drawBox.classList.contains("open"); setDrawBox(on); if (on) cmds.focus(); };
+  const ex = drawBox.querySelector(".row2");
+  for (const [name, c] of [["Square", "REPEAT 4 [ FORWARD 80 RIGHT 90 ]"], ["Star", "COLOUR gold REPEAT 5 [ FORWARD 120 RIGHT 144 ]"],
+                           ["Sun", "COLOUR orange REPEAT 36 [ FORWARD 12 RIGHT 10 ]"],
+                           ["Flower", "COLOUR pink REPEAT 6 [ REPEAT 36 [ FORWARD 4 RIGHT 10 ] RIGHT 60 ]"]]) {
+    const b = document.createElement("button"); b.type = "button"; b.className = "chip ex"; b.textContent = name;
+    b.onclick = () => { cmds.value = c; }; ex.append(b);
+  }
+  document.getElementById("go").onclick = async () => {
+    const c = cmds.value.trim(); if (!c) return;
+    const r = room;
+    add(r, "You", "🖍️ " + c, "🙂", true);
+    const slot = add(r, byId.turtle ? byId.turtle.name : "Rocky", "Ahh... let me see...", byId.turtle ? byId.turtle.face : "🐢");
+    try {
+      const d = await post("/draw", { room: r, commands: c });
+      if (d.drawing) { slot.bubble.textContent = "Ahh... here's your picture..."; drawPicture(d.drawing, slot.bubble); }
+      else slot.bubble.textContent = "Hmm... " + (d.error || "my claw slipped. Try again?");
+    } catch { slot.bubble.textContent = "The pond is a bit sleepy. Try again in a moment."; }
+    chats[r].scrollTop = chats[r].scrollHeight;
+  };
 
   open("pond");
 </script>
