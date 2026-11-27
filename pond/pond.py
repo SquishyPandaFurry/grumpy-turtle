@@ -86,7 +86,9 @@ GOSSIP_PROMPT = (
     "they had: {lines} short lines (one or two sentences each), taking turns, each line "
     "'Name: what they said' (names: {names}). Each animal sounds like itself and has its own opinion: "
     "they tease, disagree and change the subject, they don't just agree. Carry on from what happened "
-    "before. Gentle, funny, fine for a young child; no talk of bedtime. Only the gossip lines, nothing else."
+    "before. Gentle, funny, fine for a young child; no talk of bedtime. Never make up facts about the child "
+    "(his school, his days, what he does): only mention him using what you are told about him. "
+    "Only the gossip lines, nothing else."
 )
 
 GOSSIP_GIST_PROMPT = (
@@ -111,8 +113,9 @@ CHOOSE_PROMPT = (
 
 PICTURE_PROMPT = (
     "Rocky the very old turtle draws a small picture for the pond after a quiet spell, using turtle "
-    "commands. Pick something simple from pond life, the season or the gossip (a sun, a flower, a "
-    "frog, a snowflake, a house, a star...). " + turtle_draw.GUIDE + "\n"
+    "commands. Pick something simple from pond life or the season that is easy to draw with straight "
+    "lines and circles (a sun, a flower, a snowflake, a house, a star, a fish, a tree...). Never make up "
+    "facts about the child. " + turtle_draw.GUIDE + "\n"
     "Answer in exactly this shape and nothing else:\n"
     "TITLE: a few words saying what it is\n"
     "<draw>the commands</draw>\n"
@@ -649,7 +652,7 @@ def _one_reply(animal, room, chat, visit, text, earlier):
         user += ("The others have already answered him:\n" + _transcript(earlier) + "\n\n"
                  "Answer him too, in your own way, and react to what they just said (agree, tease, "
                  "disagree or add something new). Don't repeat them.\n\n")
-    user += f"Reply as {short_name(animal)}."
+    user += f"Reply to his newest message, as {short_name(animal)}."
     raw = call_model(
         [{"role": "system", "content": _system_prompt(animal, room, chat, visit)},
          {"role": "user", "content": user}],

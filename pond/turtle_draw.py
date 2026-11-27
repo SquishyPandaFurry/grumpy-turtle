@@ -154,6 +154,8 @@ def split_reply(reply):
         return (reply or "").strip(), None
     text = (reply[:m.start()] + " " + reply[m.end():]).strip()
     text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text, m.group(1).strip()
 
 
