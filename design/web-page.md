@@ -3,6 +3,7 @@
 Small Python web server on the Sprite, reached at the Sprite's own URL (wakes the Sprite on request).
 
 ## Agreed but not built
+- "Everyone" chip next to the "Who answers?" chips in the Pond chat (agreed 2026-11-27, v03 feedback; see pond-script.md). Several replies show one after another.
 - `GET /` — the page: three animal cards (my son's drawings), chat area, "pond news" panel showing the gossip log.
 - `POST /talk` — `{animal, text}` → pond script → `{animal, reply, drawing?}`.
 - Replies shown with the animal's picture next to them.

@@ -3,6 +3,7 @@
 The core program. It doesn't think; it builds context for the model and tidies up afterwards.
 
 ## Agreed but not built
+- "Everyone" answers (agreed 2026-11-27, v03 feedback; queued v04): in the Pond chat, a message to the whole pond ("Morning everyone") gets replies from 2-3 animals in turn, each seeing the replies before it, instead of the one-animal answer agreed for v02. The chooser gets a third answer, "all"; a named or picked animal still answers alone. 2-3 model calls for those messages.
 - Files:
   ```
   pond/animals/{turtle,capybara,hedgehog}.md
