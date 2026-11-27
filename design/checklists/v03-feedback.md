@@ -12,8 +12,8 @@ v03, PR #5, live 2026-11-26.
   - Feedback (2026-11-26): yes.
 - [~] In the evening they follow what you talk about and don't keep going on about bedtime
   - Feedback (2026-11-27): bedtime no longer reported, but the same fixation moved: next morning every greeting asked about kickboxing and school, the only things he'd mentioned. Bug, queued v04 (bugs.md).
-- [ ] On the tablet, the header and cards fold into a slim bar while typing (tap the bar to get them back)
-  - Not checked on the real tablet yet; carry into the v04 checklist.
+- [x] On the tablet, the header and cards fold into a slim bar while typing (tap the bar to get them back)
+  - Feedback (2026-11-27): fine on the real tablet.
 - [x] After 6+ hours away, 📰 Pond news has new gossip (with a dot) and the greeting mentions missing you
   - Feedback (2026-11-27): all good (gossip after 13h on 2026-11-26 19:59). The 2026-11-27 06:17 wake-up gossip failed (out of credit) and was lost: bug, queued v04.
 - [x] Later chats sometimes carry on from the gossip or earlier pond events
@@ -26,7 +26,7 @@ v03, PR #5, live 2026-11-26.
 - [x] After the Sprite has slept, the page wakes it and the server is running — yes (2026-11-26)
 - [x] No API key anywhere on the Sprite or in the repo — repo checked 2026-11-26: no key (Sprite not re-checked)
 - [x] Real memory files not committed — checked 2026-11-26: no memory files or secret_key.txt in git
-- [x] Works on the tablet — yes (2026-11-26); the keyboard fold itself is still to check (Part A)
+- [x] Works on the tablet — yes (2026-11-26); keyboard fold fine too (2026-11-27)
 
 ## Part C — anything else you noticed
 - Feedback (2026-11-27): "Morning everyone" in the Pond chat gets only one reply. It should know when he's talking to the whole pond (it already gets it right when he answers one animal). Agreed, queued v04: "everyone" answers (pond-script.md / web-page.md).
