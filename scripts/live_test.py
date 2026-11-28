@@ -22,7 +22,11 @@ def post(path, body, visit=visit):
 
 def say(room, text, animal="", visit=visit):
     r = post("/talk", {"room": room, "animal": animal, "text": text}, visit)
-    print(f"[{room}] child: {text}\n[{room}] {r.get('name', '?')}: {r.get('reply') or r.get('error')}\n")
+    print(f"[{room}] child: {text}")
+    for x in r.get("replies") or [r]:
+        pic = f"  [drew {len(x['drawing']['segments'])} lines]" if x.get("drawing") else ""
+        print(f"[{room}] {x.get('name', '?')}: {x.get('reply') or x.get('error')}{pic}")
+    print()
     return r
 
 
@@ -47,6 +51,13 @@ print("== Pond group chat")
 say("pond", "hello everyone!")
 say("pond", "Ferdinand, where did you go today?")
 say("pond", "what do you all do when it gets dark?", animal="hedgehog")
+
+print("== v04: everyone, drawing")
+say("pond", "Morning everyone!")
+say("pond", "what should we play today?", animal="all")
+say("turtle", "Rocky, can you draw me a house?")
+say("pond", "Rocky, draw a star for Colin please")
+print("[draw] child's own commands:", post("/draw", {"room": "turtle", "commands": "REPEAT 5 [FD 100 RT 144]"}))
 
 print("== New visit: Rocky should still remember green from his memory file")
 greet("turtle", visit="livetest2")

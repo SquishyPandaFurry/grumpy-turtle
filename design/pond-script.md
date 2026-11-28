@@ -3,6 +3,7 @@
 The core program. It doesn't think; it builds context for the model and tidies up afterwards.
 
 ## Agreed but not built
+- "Everyone" answers (agreed 2026-11-27, v03 feedback; queued v04): in the Pond chat, a message to the whole pond ("Morning everyone") gets replies from 2-3 animals in turn, each seeing the replies before it, instead of the one-animal answer agreed for v02. The chooser gets a third answer, "all"; a named or picked animal still answers alone. 2-3 model calls for those messages.
 - Files:
   ```
   pond/animals/{turtle,capybara,hedgehog}.md
@@ -46,6 +47,8 @@ The core program. It doesn't think; it builds context for the model and tidies u
 - v02: prompt = persona + memory + UK time + last 10 pond-log lines + chat (last 10 messages + running summary, per visit and chat, kept in server memory). Pond group chat + private chats; auto-choose (named animal, else a quick model call). `greet()` opens each chat from memory. Memory call logs every answer; non-facts and facts about the animal are dropped. 429s retried (3s, 8s). Not yet: wake-up, gossip, last_seen.
 
 - v03: private chats see the other animals and this visit's Pond chat (never another private chat; checked on the Sprite); Pond prompt says don't echo the last speaker, temperature per animal (0.6 / 0.85 / 1.0); memory call answers CHILD + POND in one call; `last_seen.txt` and wake-up after 6h (`POND_WAKE_HOURS`): 4 lines of gossip into `pond_log.md`, a short gist call saves what happened to each pond memory, the greeting mentions the wake-up. Not yet: Pushover.
+
+- v04: "Everyone" answers: the chooser can answer `all`, and "everyone / all of you / hi all", or naming two animals, skip the choose call; 2-3 animals (the chip: all 3) reply in turn, each told what the others just said; their memory calls run in the background. Pond chat prompt: a friendly chat among the animals, not a check-up; "be a friend, not a carer", few questions. Greetings: at most one per visit brings up one thing he said (picked in code, skipping recently used facts), the rest open with their own news. Wake-up: `last_seen.txt` moves on only once gossip worked (retry every 5 min, `POND_GOSSIP_RETRY_MINUTES`). 402 / credit errors raise OutOfCredit: logged as `OUT OF CREDIT` with the top-up link.
 
 ## Ideas (not agreed)
 - Animals occasionally message first via Pushover ("Hedgehog refuses to come out until someone says sorry").

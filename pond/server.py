@@ -1,9 +1,13 @@
 """The pond web server. Python standard library only.
 
 GET  /?key=SECRET   the chat page
-POST /talk          {"visit": "...", "room": "pond"|"turtle"|..., "animal": "" or id, "text": "..."}
-POST /greet         {"visit": "...", "room": ...}  -> the animal's hello for that chat (+ "news")
-(both POSTs need header X-Pond-Key: SECRET; they answer {"animal", "name", "face", "reply"})
+POST /talk          {"visit": "...", "room": "pond"|"turtle"|..., "animal": "" or id or "all", "text": "..."}
+                    -> {"replies": [{"animal", "name", "face", "reply", "drawing"?}, ...]} (several when
+                       everyone answers) plus the first reply's fields at the top level
+POST /greet         {"visit": "...", "room": ...}  -> the animal's hello for that chat (+ "news", "picture")
+POST /draw          {"visit": "...", "room": ..., "commands": "REPEAT 4 [FD 50 RT 90]"} -> {"drawing"}
+                    or {"error": "..."} (the child's own turtle commands; no model call)
+(all POSTs need header X-Pond-Key: SECRET)
 GET  /health        "ok" (no key needed, says nothing about the pond)
 
 Anything without the right key gets a plain 404, so strangers can't chat or spend credits.
@@ -20,6 +24,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import pond
+import turtle_draw
 
 HERE = Path(__file__).resolve().parent
 KEY_FILE = HERE / "secret_key.txt"  # gitignored, created on first start
@@ -79,12 +84,13 @@ class Handler(BaseHTTPRequestHandler):
             page = (HERE / "static" / "index.html").read_text(encoding="utf-8")
             page = page.replace("__ANIMALS__", json.dumps(pond.animal_info()))
             page = page.replace("__NEWS__", json.dumps(pond.read_pond_log()))
+            page = page.replace("__PICTURE__", json.dumps(pond.latest_picture()))
             return self._send(200, page, "text/html")
         self._not_found()
 
     def do_POST(self):
         path = urlparse(self.path).path
-        if path not in ("/talk", "/greet") or not key_ok(self.headers.get("X-Pond-Key", "")):
+        if path not in ("/talk", "/greet", "/draw") or not key_ok(self.headers.get("X-Pond-Key", "")):
             return self._not_found()
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0 or length > MAX_BODY:
@@ -95,24 +101,44 @@ class Handler(BaseHTTPRequestHandler):
             room = str(req.get("room") or req.get("animal") or "")
             animal = str(req.get("animal") or "")
             text = str(req.get("text", ""))
+            commands = str(req.get("commands", ""))
         except (ValueError, AttributeError):
             return self._send(400, json.dumps({"error": "Bad request."}))
         animals = pond.list_animals()
         if (not VISIT_RE.fullmatch(visit) or room not in animals + [pond.POND_ROOM]
-                or (animal and animal not in animals) or (path == "/talk" and not text.strip())):
+                or (animal and animal not in animals + [pond.EVERYONE])
+                or (animal == pond.EVERYONE and room != pond.POND_ROOM)
+                or (path == "/talk" and not text.strip())
+                or (path == "/draw" and (not commands.strip() or len(commands) > pond.MAX_TEXT
+                                         or room not in (pond.ARTIST, pond.POND_ROOM)))):
             return self._send(400, json.dumps({"error": "Bad request."}))
+        if path == "/draw":
+            try:
+                drawing = pond.draw_for_child(commands, visit, room)
+            except turtle_draw.DrawError as e:
+                return self._send(200, json.dumps({"error": str(e)}))
+            return self._send(200, json.dumps({"drawing": drawing}))
         try:
             if path == "/greet":
                 who, reply = pond.greet(visit, room)
             else:
-                who, reply = pond.ask(animal or None, text, visit=visit, room=room)
+                replies = pond.talk(animal or None, text, visit=visit, room=room)
+        except pond.OutOfCredit as e:
+            sys.stderr.write(f"pond error: {e}\n")
+            return self._send(502, json.dumps({"error": "The animals are fast asleep right now 💤 "
+                                                         "Ask a grown-up to wake up the pond.",
+                                               "reason": "out_of_credit"}))
         except pond.PondError as e:
             sys.stderr.write(f"pond error: {e}\n")
             return self._send(502, json.dumps({"error": "The pond is a bit sleepy. Try again in a moment."}))
-        out = {"animal": who, "name": pond.short_name(who), "face": pond.face(who), "reply": reply}
         if path == "/greet":
-            out["news"] = pond.read_pond_log()   # gossip may have just happened on wake-up
-        self._send(200, json.dumps(out))
+            out = {"animal": who, "name": pond.short_name(who), "face": pond.face(who), "reply": reply,
+                   # gossip and Rocky's picture may have just happened on wake-up
+                   "news": pond.read_pond_log(), "picture": pond.latest_picture()}
+            return self._send(200, json.dumps(out))
+        out = [{"animal": r["animal"], "name": pond.short_name(r["animal"]), "face": pond.face(r["animal"]),
+                "reply": r["reply"], **({"drawing": r["drawing"]} if r["drawing"] else {})} for r in replies]
+        self._send(200, json.dumps({**out[0], "replies": out}))
 
 
 def main():

@@ -15,6 +15,7 @@ def kind(body):
     if "help a pond animal remember" in system: return "memory"
     if "Rewrite it as a shorter list" in system: return "compact"
     if "Write the gossip" in system: return "gossip"
+    if "draws a small picture" in system: return "picture"
     if "Here is some gossip" in system: return "gist"
     if "running summary" in system: return "summary"
     if "pick who should answer" in system: return "choose"
@@ -34,6 +35,10 @@ class FakeGateway(BaseHTTPRequestHandler):
             self.send_response(429); self.send_header("Content-Length", str(len(out))); self.end_headers()
             self.wfile.write(out); return
         system = body["messages"][0]["content"]
+        if ("out of credit" in user or (k == "gossip" and getattr(FakeGateway, "broke", False))):
+            out = b'{"error":{"message":"This request requires more credits, or fewer max_tokens.","code":402}}'
+            self.send_response(402); self.send_header("Content-Length", str(len(out))); self.end_headers()
+            self.wfile.write(out); return
         if k == "memory":
             said = user.split("Child said:")[1]
             child = "His favourite colour is green" if "green" in said else "NONE"
@@ -47,7 +52,10 @@ class FakeGateway(BaseHTTPRequestHandler):
         elif k == "summary":
             text = "They talked about frogs and colours."
         elif k == "choose":
-            text = "hedgehog"
+            text = "all" if "anyone awake" in user else "hedgehog"
+        elif k == "picture":
+            text = ("TITLE: A frosty sun\n<draw>COLOUR yellow REPEAT 36 [FORWARD 10 RIGHT 10]</draw>\n"
+                    "Colin: Honestly, it's a bit wobbly.\nFerdinand: I love it!")
         elif k == "gist":
             assert "magpie" in user and "Shark" not in user, user
             text = ("The magpie took Colin's shiny button while the child was away, and Rocky told "
@@ -57,6 +65,8 @@ class FakeGateway(BaseHTTPRequestHandler):
         else:
             name = system.splitlines()[0].lstrip("# ").split(" the ")[0]
             text = f"{name}: Ahh... hello, little one..."
+            if "draw me" in user.split("The child just said:")[-1]:
+                text += " <draw>REPEAT 4 [FD 50 RT 90]</draw>"
         out = json.dumps({"choices": [{"message": {"content": text}}]}).encode()
         self.send_response(200); self.send_header("Content-Length", str(len(out))); self.end_headers()
         self.wfile.write(out)
@@ -95,15 +105,34 @@ def check_clean_fact():
     assert lines == ["Colin: Honestly!", "Rocky: Ahh...", "Colin: No.", "Ferdinand: Yes."] and rem == "Colin sulked", (lines, rem)
 
 
+def check_drawing():
+    import turtle_draw as t
+    assert len(t.draw("REPEAT 4 [FORWARD 80 RIGHT 90]")["segments"]) == 4
+    assert len(t.draw("pen up fd 10 pen down colour red rt 90 fd 10")["segments"]) == 1
+    big = t.draw("REPEAT 72 [REPEAT 72 [REPEAT 72 [FD 1 RT 1]]]")["segments"]
+    assert len(big) == t.MAX_SEGMENTS
+    far = t.draw("FD 9999 RT 90 FD 9999")["segments"]
+    assert all(abs(v) <= t.CANVAS for s in far for v in s[:4]), far
+    for bad in ("JUMP 4", "FORWARD", "REPEAT 4 FD 4", "REPEAT 4 [FD 3", "FD 4 ]", "COLOUR mauve",
+                "PENUP", "COLOUR javascript:alert(1)", "FD 1 " * 700):
+        try: t.draw(bad); assert False, bad
+        except t.DrawError: pass
+    assert t.split_reply("Ahh... <draw>FD 5</draw> there") == ("Ahh... there", "FD 5")
+    assert t.split_reply("no picture") == ("no picture", None)
+    assert "<line" in t.to_svg(t.draw("FD 5"))
+
+
 def main():
     check_time_of_day()
+    check_drawing()
     check_clean_fact()
     gw = ThreadingHTTPServer(("127.0.0.1", 0), FakeGateway)
     threading.Thread(target=gw.serve_forever, daemon=True).start()
     work = Path(tempfile.mkdtemp()); shutil.copytree(ROOT / "pond", work / "pond")
     (work / "pond/pond_log.md").write_text("- Hedgehog found a shiny button.\n")
     env = dict(os.environ, POND_PORT="18080", POND_KEY="testkey",
-               POND_GATEWAY_BASE=f"http://127.0.0.1:{gw.server_port}/api/v1", POND_RETRY_WAITS="0.2")
+               POND_GATEWAY_BASE=f"http://127.0.0.1:{gw.server_port}/api/v1", POND_RETRY_WAITS="0.2",
+               POND_GOSSIP_RETRY_MINUTES="0")
     srv = subprocess.Popen([sys.executable, "server.py"], cwd=work / "pond", env=env,
                            stderr=open(work / "server.log", "w"))
     base = "http://127.0.0.1:18080"
@@ -254,6 +283,93 @@ def main():
         call(req("/greet", {"visit": "v7", "room": "pond"}))
         assert sum(kind(b) == "gossip" for _, _, b in seen) == 1, "no second gossip right after"
         urllib.request.urlopen(base + "/?key=testkey").read()
+
+        # --- v04 ---
+        assert "Everyone" in page and "drawPicture" in page and "__PICTURE__" not in page
+        # Pond chat is a friendly chat among the animals, not a check-up
+        r = call(talk("hello there", room="pond", animal="hedgehog", visit="e1"))
+        psys = chat_prompts()[-1]["messages"][0]["content"]
+        assert "not a check-up" in psys and "Be a friend, not a carer" in psys and "pep talk" in psys
+
+        # Everyone chip: all three answer in turn, each seeing the replies before it
+        n = len(chat_prompts())
+        r = call(talk("what's for lunch?", room="pond", animal="all", visit="e1"))
+        assert len(r["replies"]) == 3 and len({x["animal"] for x in r["replies"]}) == 3, r
+        assert r["reply"] == r["replies"][0]["reply"]
+        ps = chat_prompts()[n:]
+        assert len(ps) == 3 and "already answered" not in ps[0]["messages"][1]["content"]
+        assert "already answered" in ps[1]["messages"][1]["content"] and ps[2]["messages"][1]["content"].count("Ahh") >= 2
+        # "Morning everyone" gets 2-3 replies without a choose call; the chooser can say "all" too
+        n_choose = sum(kind(b) == "choose" for _, _, b in seen)
+        r = call(talk("Morning everyone!", room="pond", visit="e2"))
+        assert 2 <= len(r["replies"]) <= 3, r
+        assert sum(kind(b) == "choose" for _, _, b in seen) == n_choose
+        r = call(talk("is anyone awake?", room="pond", visit="e2"))
+        assert 2 <= len(r["replies"]) <= 3, r
+        r = call(talk("hi Colin", room="pond", visit="e2"))
+        assert len(r["replies"]) == 1 and r["animal"] == "hedgehog"
+        assert status(talk("x", room="turtle", animal="all")) == 400, "everyone only in the Pond chat"
+
+        # Rocky draws: <draw> becomes a drawing, never shown as text; others don't draw
+        r = call(talk("draw me a square", visit="d1"))
+        assert r["drawing"]["segments"] and len(r["drawing"]["segments"]) == 4, r
+        assert "<draw>" not in r["reply"] and "REPEAT" not in r["reply"], r
+        assert "## Drawing" in chat_prompts()[-1]["messages"][0]["content"]
+        r = call(talk("draw me a square", room="hedgehog", visit="d1"))
+        assert "drawing" not in r and "<draw>" not in r["reply"], r
+        assert "## Drawing" not in chat_prompts()[-1]["messages"][0]["content"]
+        # The child's own commands
+        d = call(req("/draw", {"visit": "d1", "room": "turtle", "commands": "repeat 5 [fd 100 rt 144]"}))
+        assert len(d["drawing"]["segments"]) == 5, d
+        d = call(req("/draw", {"visit": "d1", "room": "turtle", "commands": "JUMP 5"}))
+        assert "JUMP" in d["error"], d
+        assert status(req("/draw", {"visit": "d1", "room": "hedgehog", "commands": "fd 5"})) == 400
+        assert status(req("/draw", {"visit": "d1", "room": "turtle", "commands": "fd 5"}, key="x")) == 404
+        call(talk("did you like my drawing?", visit="d1"))
+        assert "typed turtle commands" in chat_prompts()[-1]["messages"][1]["content"]
+
+        # Greetings: at most one per visit brings up something he said
+        for a in ("turtle", "capybara", "hedgehog"):
+            (work / f"pond/memory/{a}.md").write_text("- He does kickboxing\n- He has a dog called Biscuit\n")
+        for v in ("g1", "g2", "g3"):
+            n = len(seen)
+            for room in ("pond", "turtle", "capybara", "hedgehog"):
+                call(req("/greet", {"visit": v, "room": room}))
+            gps = [b["messages"][-1]["content"] for _, _, b in seen[n:] if kind(b) == "greet"]
+            assert len(gps) == 4
+            assert sum("this one thing he told you" in g for g in gps) <= 1, gps
+            assert sum("Don't ask about anything he told you before" in g for g in gps) >= 3, gps
+            assert all("Don't assume anything about how he is" in g for g in gps)
+
+        # Out of credit: logged clearly, the child gets a friendly message
+        try:
+            urllib.request.urlopen(talk("out of credit please", visit="c1")); assert False
+        except urllib.error.HTTPError as e:
+            body = json.load(e); assert e.code == 502 and body["reason"] == "out_of_credit", body
+            assert "grown-up" in body["error"] and "sleepy" not in body["error"]
+        assert "OUT OF CREDIT" in (work / "server.log").read_text()
+
+        # Failed wake-up gossip is not lost: last_seen stays, and a later visit tries again
+        seen_at = time.time() - 8 * 3600
+        (work / "pond/last_seen.txt").write_text(f"{seen_at:.0f}\n")
+        FakeGateway.broke = True
+        n_g = sum(kind(b) == "gossip" for _, _, b in seen)
+        call(req("/greet", {"visit": "w1", "room": "turtle"}))
+        assert sum(kind(b) == "gossip" for _, _, b in seen) == n_g + 1
+        assert abs(float((work / "pond/last_seen.txt").read_text()) - seen_at) < 2, "last_seen must not move on"
+        assert "gossip failed" in (work / "server.log").read_text()
+        FakeGateway.broke = False
+        g = call(req("/greet", {"visit": "w2", "room": "pond"}))
+        assert sum(kind(b) == "gossip" for _, _, b in seen) == n_g + 2, "retried on the next visit"
+        assert float((work / "pond/last_seen.txt").read_text()) > seen_at + 3600
+        # ...and Rocky's morning picture comes with it, with Colin's and Ferdinand's reactions
+        pic = json.loads((work / "pond/picture.json").read_text())
+        assert pic["title"] == "A frosty sun" and len(pic["segments"]) == 36, pic
+        assert g["picture"]["title"] == "A frosty sun"
+        assert any("Rocky drew a picture: A frosty sun" in l for l in g["news"]), g["news"]
+        assert any(l.startswith("- Colin: Honestly, it's a bit wobbly") for l in g["news"]), g["news"]
+        page = urllib.request.urlopen(base + "/?key=testkey").read().decode()
+        assert "A frosty sun" in page
 
         # Gateway use
         assert all("Authorization" not in h for _, h, _ in seen), "no auth header to the gateway"

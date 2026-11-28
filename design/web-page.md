@@ -3,6 +3,7 @@
 Small Python web server on the Sprite, reached at the Sprite's own URL (wakes the Sprite on request).
 
 ## Agreed but not built
+- "Everyone" chip next to the "Who answers?" chips in the Pond chat (agreed 2026-11-27, v03 feedback; see pond-script.md). Several replies show one after another.
 - `GET /` — the page: three animal cards (my son's drawings), chat area, "pond news" panel showing the gossip log.
 - `POST /talk` — `{animal, text}` → pond script → `{animal, reply, drawing?}`.
 - Replies shown with the animal's picture next to them.
@@ -19,6 +20,8 @@ Small Python web server on the Sprite, reached at the Sprite's own URL (wakes th
 - v02: 🌿 Pond card + one card per animal (emoji until the drawings), private chat per card, "Who answers?" chips in the Pond chat, greeting per chat, 📰 Pond news panel, smaller text under 600px, app pinned to the visible viewport so the tablet keyboard doesn't hide the top. `POST /greet` added.
 
 - v03: while typing on a touch screen, header and cards fold into a slim bar (tap to unfold); the greeting refreshes the 📰 Pond news panel, with a dot for new gossip.
+
+- v04: 👋 Everyone chip; several replies show one after another; Rocky's drawings animate in his bubble; 🖍️ draw-your-own box; latest picture at the top of 📰 Pond news; out-of-credit message "The animals are fast asleep right now 💤 Ask a grown-up to wake up the pond."
 
 ## Ideas (not agreed)
 - Mockup to show my son before building.

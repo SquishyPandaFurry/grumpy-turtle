@@ -16,11 +16,14 @@ from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import turtle_draw
+
 HERE = Path(__file__).resolve().parent
 ANIMALS_DIR = HERE / "animals"
 MEMORY_DIR = HERE / "memory"
 POND_LOG = HERE / "pond_log.md"
 LAST_SEEN = HERE / "last_seen.txt"
+PICTURE = HERE / "picture.json"   # Rocky's latest morning picture
 
 # One config string, easy to swap.
 MODEL = os.environ.get("POND_MODEL", "anthropic/claude-haiku-4.5")
@@ -41,6 +44,7 @@ MEMORY_COMPACT_AT = 50   # when a memory file passes this many lines, it is summ
 MEMORY_COMPACT_TO = 25
 WAKE_HOURS = float(os.environ.get("POND_WAKE_HOURS", "6"))   # this long with no visit = a wake-up
 WOKE_FRESH_MINUTES = 30  # greetings mention the wake-up for this long after it
+GOSSIP_RETRY_MINUTES = float(os.environ.get("POND_GOSSIP_RETRY_MINUTES", "5"))  # a failed wake-up gossip is tried again after this long
 GOSSIP_LINES = 4
 LOG_CONTEXT_LINES = 10   # pond log lines in every prompt
 HISTORY_KEEP = 10        # messages of the chat shown word for word
@@ -48,6 +52,8 @@ HISTORY_ROLL_AT = 16     # when a chat passes this, older messages are rolled in
 MAX_VISITS = 30          # chats kept in memory (a reload starts a fresh visit)
 
 POND_ROOM = "pond"
+EVERYONE = "all"         # the "Everyone" chip / chooser answer: 2-3 animals reply in turn
+ARTIST = "turtle"        # only Rocky draws
 FACES = {"turtle": "🐢", "capybara": "🦫", "hedgehog": "🦔"}
 KINDS = {"turtle": "turtle", "capybara": "capybara", "hedgehog": "hedgehog"}
 # A different temperature per animal, so they don't all sound alike.
@@ -80,7 +86,9 @@ GOSSIP_PROMPT = (
     "they had: {lines} short lines (one or two sentences each), taking turns, each line "
     "'Name: what they said' (names: {names}). Each animal sounds like itself and has its own opinion: "
     "they tease, disagree and change the subject, they don't just agree. Carry on from what happened "
-    "before. Gentle, funny, fine for a young child; no talk of bedtime. Only the gossip lines, nothing else."
+    "before. Gentle, funny, fine for a young child; no talk of bedtime. Never make up facts about the child "
+    "(his school, his days, what he does): only mention him using what you are told about him. "
+    "Only the gossip lines, nothing else."
 )
 
 GOSSIP_GIST_PROMPT = (
@@ -98,12 +106,47 @@ SUMMARY_PROMPT = (
 CHOOSE_PROMPT = (
     "Three pond animals share a group chat with a young child: {names}. "
     "Read the chat and the child's new message and pick who should answer, so it fits "
-    "what he said and the animals take turns. Answer with exactly one word: {ids}."
+    "what he said and the animals take turns. If he is talking to the whole pond (e.g. "
+    "'morning everyone', 'what do you all think?') or it's something they'd all want to answer, "
+    "answer 'all'. Answer with exactly one word: {ids} or all."
+)
+
+PICTURE_PROMPT = (
+    "Rocky the very old turtle draws a small picture for the pond after a quiet spell, using turtle "
+    "commands. Pick something simple from pond life or the season that is easy to draw with straight "
+    "lines and circles (a sun, a flower, a snowflake, a house, a star, a fish, a tree...). Never make up "
+    "facts about the child. " + turtle_draw.GUIDE + "\n"
+    "Answer in exactly this shape and nothing else:\n"
+    "TITLE: a few words saying what it is\n"
+    "<draw>the commands</draw>\n"
+    "Colin: his reaction (dramatic, finds something to critique, but secretly impressed), one sentence\n"
+    "Ferdinand: his reaction (loves everything), one sentence"
 )
 
 
 class PondError(Exception):
     pass
+
+
+class OutOfCredit(PondError):
+    """OpenRouter has no credit left (402). The child gets a friendly message, the log says why."""
+
+
+OUT_OF_CREDIT_SAID = {"at": 0.0}
+
+
+def out_of_credit(detail):
+    log(f"OUT OF CREDIT: OpenRouter has run out of credit, add some at "
+        f"https://openrouter.ai/settings/credits (no restart needed). Gateway said: {detail[:200]}")
+    now = time.time()
+    if now - OUT_OF_CREDIT_SAID["at"] > 6 * 3600:
+        OUT_OF_CREDIT_SAID["at"] = now
+        notify_grown_up("The Pond has run out of OpenRouter credit. Top up at openrouter.ai/settings/credits.")
+
+
+def notify_grown_up(message):
+    """Pushover ping, once a Pushover connector exists on the Sprite. Until then: the log only."""
+    log(f"grown-up ping (no Pushover yet): {message}")
 
 
 def log(msg):
@@ -415,6 +458,9 @@ def _call_model(messages, max_tokens=300, temperature=None):
         detail = e.read()[:300].decode(errors="replace")
         if e.code == 429:
             raise RateLimited(f"Gateway said 429: {detail}") from e
+        if e.code == 402 or re.search(r"credit|budget", detail, re.I):
+            out_of_credit(detail)
+            raise OutOfCredit(f"Gateway said {e.code}: {detail}") from e
         raise PondError(f"Gateway said {e.code}: {detail}") from e
     except (urllib.error.URLError, TimeoutError) as e:
         raise PondError(f"Could not reach the gateway: {e}") from e
@@ -446,6 +492,9 @@ def _system_prompt(animal, room, chat, visit="default"):
     if room == POND_ROOM:
         where = (f"This is the Pond group chat: the child, you, and the others ({others}) can all "
                  "see it. Lines are labelled with who said them. You only speak for yourself.\n"
+                 "It's a friendly chat at the pond, not a check-up on the child. Talk with the other "
+                 "animals too: answer them by name, tease, grumble, agree or disagree, and carry on your "
+                 "own little dramas from the pond news. The child joins in like one of the gang.\n"
                  "You are your own animal with your own opinions. Don't echo, repeat or just agree "
                  "with what the last animal said: react your own way (disagree, tease, add your own "
                  "take, or bring up something different), and still answer the child.")
@@ -472,8 +521,21 @@ def _system_prompt(animal, room, chat, visit="default"):
         + "\n\n## How to answer\n"
         + "- Answer what the child actually said first, and stay on his topic.\n"
         + "- Don't repeat a topic, phrase or opening you used in your recent messages (bedtime and sleep count as a topic); pick something new from your pond life.\n"
+        + "- Be a friend, not a carer: chat, joke and share your own news. Don't give pep talks or "
+        + "reassure him unless he says he's worried or sad, and don't guess how he feels (tired, nervous, "
+        + "trouble sleeping...).\n"
+        + "- Most replies don't need a question for him. Ask one only now and then, when you really want to know.\n"
+        + "- Only bring up something he told you before when it fits what he's talking about now.\n"
         + "- Stay in character. Reply in plain words only: no lists, no code, no links, and don't start with your name."
+        + (_drawing_rules() if animal == ARTIST else "")
     )
+
+
+def _drawing_rules():
+    return ("\n\n## Drawing\nYou love drawing pictures with your claw, turtle-graphics style. When the child "
+            "asks you to draw something (or a picture would really fit), say one short sentence, then "
+            "write the drawing. " + turtle_draw.GUIDE + " Draw at most one picture per reply, and "
+            "don't draw unless it fits.")
 
 
 def _strip_name(animal, reply):
@@ -510,14 +572,21 @@ def _remember(animal, text, reply, room=None):
         append_memory(animal, pond_fact, "pond")
 
 
+_EVERYONE_RE = re.compile(
+    r"\b(every ?(one|body)|all of you|you all|y'?all|you guys|hi all|hello all|morning all|night all)\b",
+    re.I)
+
+
 def choose_animal(text, chat):
-    """Who answers in the Pond chat when nobody was picked."""
+    """Who answers in the Pond chat when nobody was picked: an animal id, or EVERYONE."""
     animals = list_animals()
     low = text.lower()
     named = [a for a in animals
              if re.search(rf"\b({re.escape(short_name(a).lower())}|{KINDS.get(a, a)})\b", low)]
     if len(named) == 1:
         return named[0]
+    if len(named) > 1 or _EVERYONE_RE.search(low):
+        return EVERYONE
     last = next((s for s, _ in reversed(chat["messages"]) if s != "child"), None)
     try:
         raw = call_model(
@@ -528,12 +597,30 @@ def choose_animal(text, chat):
             max_tokens=5,
         )
         pick = re.sub(r"[^a-z]", "", raw.lower())
-        if pick in animals:
+        if pick in animals or pick == EVERYONE:
             return pick
         log(f"choose: unexpected answer {raw[:40]!r}")
+    except OutOfCredit:
+        raise
     except PondError as e:
         log(f"choose error: {e}")
     return random.choice([a for a in animals if a != last] or animals)
+
+
+def _everyone_order(text, chat, how_many):
+    """Who answers, in turn, when the child talks to the whole pond. Named animals go first,
+    and the last animal to speak doesn't open."""
+    animals = list_animals()
+    low = text.lower()
+    named = [a for a in animals
+             if re.search(rf"\b({re.escape(short_name(a).lower())}|{KINDS.get(a, a)})\b", low)]
+    last = next((s for s, _ in reversed(chat["messages"]) if s != "child"), None)
+    rest = [a for a in animals if a not in named]
+    random.shuffle(rest)
+    if last in rest and len(rest) > 1 and rest[0] == last:
+        rest.append(rest.pop(0))
+    order = named + rest
+    return order[:max(how_many, len(named))]
 
 
 def _check_room(room):
@@ -541,11 +628,48 @@ def _check_room(room):
         _check_animal(room)
 
 
-def ask(animal, text, visit="default", room=None):
-    """One message from the child in a chat. Returns (animal, reply).
+def _drawing_of(animal, reply):
+    """Split Rocky's <draw> block from his reply. Returns (text, drawing or None).
+    Other animals don't draw: any <draw> block from them is just dropped."""
+    text, commands = turtle_draw.split_reply(reply)
+    if not commands or animal != ARTIST:
+        return text, None
+    try:
+        drawing = turtle_draw.draw(commands)
+    except turtle_draw.DrawError as e:
+        log(f"drawing {animal}: not drawn ({e}) from {commands[:200]!r}")
+        return text, None
+    log(f"drawing {animal}: {len(drawing['segments'])} lines")
+    return text or "Ahh... here you are...", drawing
 
-    room is "pond" (group chat) or an animal id (private chat). In the Pond chat,
-    animal may be None/"" and one is chosen."""
+
+def _one_reply(animal, room, chat, visit, text, earlier):
+    """One animal's reply to the child's message; earlier = replies already given to it."""
+    recent = _transcript(chat["messages"]) or "(nothing yet)"
+    user = (f"Last messages in this chat:\n{recent}\n\n"
+            f"The child just said: {text}\n\n")
+    if earlier:
+        user += ("The others have already answered him:\n" + _transcript(earlier) + "\n\n"
+                 "Answer him too, in your own way, and react to what they just said (agree, tease, "
+                 "disagree or add something new). Don't repeat them.\n\n")
+    user += f"Reply to his newest message, as {short_name(animal)}."
+    raw = call_model(
+        [{"role": "system", "content": _system_prompt(animal, room, chat, visit)},
+         {"role": "user", "content": user}],
+        max_tokens=450 if animal == ARTIST else 300, temperature=TEMPERATURES.get(animal))
+    return _drawing_of(animal, _strip_name(animal, raw))
+
+
+def _history_text(reply, drawing):
+    return reply + (" (and drew a picture)" if drawing else "")
+
+
+def talk(animal, text, visit="default", room=None):
+    """One message from the child in a chat. Returns a list of replies, each
+    {"animal", "reply", "drawing"} (drawing is None unless Rocky drew).
+
+    room is "pond" (group chat) or an animal id (private chat). In the Pond chat, animal may be
+    None/"" (one is chosen, or everyone) or EVERYONE: then 2-3 animals reply in turn."""
     room = room or animal
     _check_room(room)
     text = (text or "").strip()[:MAX_TEXT]
@@ -555,26 +679,96 @@ def ask(animal, text, visit="default", room=None):
     chat = _chat(visit, room)
     with chat["lock"]:
         if room != POND_ROOM:
-            animal = room
-        elif not animal:
-            animal = choose_animal(text, chat)
-        _check_animal(animal)
+            order = [room]
+        elif animal == EVERYONE:
+            order = _everyone_order(text, chat, 3)
+        else:
+            if not animal:
+                animal = choose_animal(text, chat)
+            order = _everyone_order(text, chat, random.choice([2, 3])) if animal == EVERYONE else [animal]
+        for a in order:
+            _check_animal(a)
 
-        recent = _transcript(chat["messages"]) or "(nothing yet)"
-        user = (f"Last messages in this chat:\n{recent}\n\n"
-                f"The child just said: {text}\n\nReply as {short_name(animal)}.")
-        reply = _strip_name(animal, call_model(
-            [{"role": "system", "content": _system_prompt(animal, room, chat, visit)},
-             {"role": "user", "content": user}], temperature=TEMPERATURES.get(animal)))
+        replies, earlier = [], []
+        for a in order:
+            try:
+                reply, drawing = _one_reply(a, room, chat, visit, text, earlier)
+            except PondError:
+                if not replies:
+                    raise
+                break   # one answer is better than none
+            replies.append({"animal": a, "reply": reply, "drawing": drawing})
+            earlier.append((a, _history_text(reply, drawing)))
 
-        chat["messages"] += [("child", text), (animal, reply)]
-        _remember(animal, text, reply, room)
+        chat["messages"] += [("child", text)] + earlier
+        if len(replies) == 1:
+            _remember(replies[0]["animal"], text, replies[0]["reply"], room)
+        else:
+            # Several animals: their memory calls run in the background so the page isn't kept waiting.
+            def remember_all(rs=list(replies)):
+                for r in rs:
+                    _remember(r["animal"], text, r["reply"], room)
+            threading.Thread(target=remember_all, daemon=True).start()
         _roll_summary(chat)
-    return animal, reply
+    log(f"talk {room}: {', '.join(r['animal'] for r in replies)}")
+    return replies
+
+
+def ask(animal, text, visit="default", room=None):
+    """The first reply only, as (animal, reply). Kept for scripts and tests."""
+    r = talk(animal, text, visit, room)[0]
+    return r["animal"], r["reply"]
+
+
+def draw_for_child(commands, visit="default", room=ARTIST):
+    """The child typed turtle commands himself: Rocky draws them (no model call).
+    Returns the drawing, or raises turtle_draw.DrawError with a kind explanation."""
+    _check_room(room)
+    commands = (commands or "").strip()[:MAX_TEXT]
+    drawing = turtle_draw.draw(commands)
+    chat = _chat(visit, room)
+    with chat["lock"]:
+        chat["messages"].append(("child", f"(typed turtle commands for Rocky to draw: {commands})"))
+        chat["messages"].append((ARTIST, "(drew the child's commands)"))
+        _roll_summary(chat)
+    return drawing
+
+
+# ---------- greetings: at most one brings up something the child said, per visit ----------
+
+_visits = OrderedDict()   # visit -> {"fact_used": bool}
+_recent_greeting_facts = []   # facts greetings brought up lately (any visit), newest last
+
+
+def _visit_state(visit):
+    with _lock:
+        st = _visits.setdefault(visit, {"fact_used": False})
+        _visits.move_to_end(visit)
+        while len(_visits) > MAX_VISITS:
+            _visits.popitem(last=False)
+        return st
+
+
+def _pick_greeting_fact(animal, visit):
+    """One fact for this greeting to bring up, or None. Only the first greeting of a visit
+    may (and only most of the time), and facts brought up lately are skipped where possible."""
+    st = _visit_state(visit)
+    with _lock:
+        if st["fact_used"]:
+            return None
+        st["fact_used"] = True   # this visit's chance is taken, used or not
+    facts = [l.lstrip("- ").strip() for l in read_memory(animal).splitlines() if l.strip()]
+    if not facts or random.random() < 0.3:
+        return None
+    fresh = [f for f in facts if f not in _recent_greeting_facts] or facts
+    fact = random.choice(fresh[-15:])
+    _recent_greeting_facts.append(fact)
+    del _recent_greeting_facts[:-6]
+    return fact
 
 
 def greet(visit="default", room=POND_ROOM):
-    """The friendly hello when a chat opens, using the animal's memory. Returns (animal, reply)."""
+    """The friendly hello when a chat opens. Returns (animal, reply)."""
     _check_room(room)
     check_wake()
     chat = _chat(visit, room)
@@ -583,17 +777,28 @@ def greet(visit="default", room=POND_ROOM):
             s, t = next(((s, t) for s, t in chat["messages"] if s != "child"), chat["messages"][0])
             return s, t
         animal = room if room != POND_ROOM else random.choice(list_animals())
-        user = ("The child has just opened the chat. Greet him like a friend would, in one or two "
-                "short sentences. If you remember something about him, ask about ONE of those things "
-                "(not always the same one). Don't list what you remember.")
         hours = woke_recently()
+        fact = None if hours else _pick_greeting_fact(animal, visit)
+        user = ("The child has just opened the chat. Say hello like a friend would, in one or two "
+                "short sentences. Don't assume anything about how he is (worried, tired, nervous, "
+                "trouble sleeping) and don't give a pep talk. ")
+        if fact:
+            user += (f"You could ask about this one thing he told you before: {fact}. "
+                     "Nothing else he told you.")
+        else:
+            user += ("Don't ask about anything he told you before (the others may already have). "
+                     "Open with your own news instead: something you did or saw at the pond today, "
+                     "a bit of the pond news, or something about one of the other animals.")
         if hours:
             user += (f" The pond has just woken up: nobody visited for about {hours} hours. You can say "
                      "you've missed him, or share one bit of the gossip from the pond news.")
+        if PICTURE.exists() and animal != ARTIST and random.random() < 0.3:
+            user += " You could mention Rocky's latest picture."
         reply = _strip_name(animal, call_model(
             [{"role": "system", "content": _system_prompt(animal, room, chat, visit)},
              {"role": "user", "content": user}], max_tokens=120,
             temperature=TEMPERATURES.get(animal)))
+        reply, _ = turtle_draw.split_reply(reply)   # no drawing in a hello
         chat["messages"].append((animal, reply))
     return animal, reply
 
@@ -601,7 +806,7 @@ def greet(visit="default", room=POND_ROOM):
 # ---------- wake-up and gossip ----------
 
 _wake_lock = threading.Lock()
-_woke = {"at": 0.0, "hours": 0}
+_woke = {"at": 0.0, "hours": 0, "failed_at": 0.0}
 
 
 def woke_recently():
@@ -611,8 +816,17 @@ def woke_recently():
     return 0
 
 
+def _write_last_seen(now):
+    try:
+        LAST_SEEN.write_text(f"{now:.0f}\n")
+    except OSError as e:
+        log(f"last_seen: {e}")
+
+
 def check_wake(now=None):
     """Called on every visit. If nobody came for WAKE_HOURS, the animals gossip first.
+    last_seen only moves on once that gossip worked, so a failed one (e.g. out of credit)
+    is tried again on a later visit, at most every GOSSIP_RETRY_MINUTES.
     Returns the hours slept when this call woke the pond, else 0."""
     now = now or time.time()
     with _wake_lock:
@@ -620,19 +834,28 @@ def check_wake(now=None):
             last = float(LAST_SEEN.read_text().strip())
         except (OSError, ValueError):
             last = None   # first start: nothing to wake from
-        try:
-            LAST_SEEN.write_text(f"{now:.0f}\n")
-        except OSError as e:
-            log(f"last_seen: {e}")
         if last is None or now - last < WAKE_HOURS * 3600:
+            _write_last_seen(now)
             return 0
+        if now - _woke["failed_at"] < GOSSIP_RETRY_MINUTES * 60:
+            return 0   # failed a moment ago: don't try on every message
         hours = round((now - last) / 3600)
         log(f"wake-up after {hours}h: gossip")
-        _woke.update(at=now, hours=hours)
         try:
-            gossip(hours)
+            lines = gossip(hours)
         except PondError as e:
+            lines = []
             log(f"gossip error: {e}")
+        if not lines:
+            _woke["failed_at"] = now
+            log("gossip failed: the wake-up stays open and is tried again on a later visit")
+            return 0
+        _write_last_seen(now)
+        _woke.update(at=now, hours=hours, failed_at=0.0)
+        try:
+            morning_picture()
+        except PondError as e:
+            log(f"picture error: {e}")
         return hours
 
 
@@ -704,3 +927,52 @@ def gossip(hours=WAKE_HOURS):
         for a in list_animals():
             append_memory(a, remember, "pond")
     return lines
+
+
+# ---------- Rocky's morning picture ----------
+
+def parse_picture(raw):
+    """Model answer -> {"title", "segments", "reactions": ["Colin: ...", ...]}, or None."""
+    text, commands = turtle_draw.split_reply(raw or "")
+    if not commands:
+        return None
+    try:
+        drawing = turtle_draw.draw(commands)
+    except turtle_draw.DrawError as e:
+        log(f"picture: not drawn ({e}) from {commands[:200]!r}")
+        return None
+    title = "a picture"
+    m = re.search(r"TITLE\s*:\s*(.+)", text, re.I)
+    if m:
+        title = re.sub(r"[\x00-\x1f<>`*]", "", m.group(1)).strip()[:60] or title
+    lines, _ = parse_gossip(re.sub(r"(?im)^\s*TITLE\s*:.*$", "", text))
+    reactions = [l for l in lines if not l.startswith(short_name(ARTIST) + ":")][:2]
+    return {"title": title, "segments": drawing["segments"], "reactions": reactions}
+
+
+def morning_picture():
+    """After the wake-up gossip, Rocky draws a picture; Colin critiques and Ferdinand loves it.
+    Saved to picture.json and announced in the pond news."""
+    raw = call_model(
+        [{"role": "system", "content": PICTURE_PROMPT},
+         {"role": "user", "content": time_of_day() + "\n\nPond news:\n"
+                                     + ("\n".join(read_pond_log(6)) or "(all quiet)")}],
+        max_tokens=450, temperature=1.0)
+    pic = parse_picture(raw)
+    if not pic:
+        log(f"picture: nothing usable from {raw[:300]!r}")
+        return None
+    pic["at"] = int(time.time())
+    PICTURE.write_text(json.dumps(pic), encoding="utf-8")
+    append_pond_log([f"{short_name(ARTIST)} drew a picture: {pic['title']} 🎨"] + pic["reactions"])
+    log(f"picture: {pic['title']!r}, {len(pic['segments'])} lines, {len(pic['reactions'])} reactions")
+    return pic
+
+
+def latest_picture():
+    try:
+        pic = json.loads(PICTURE.read_text(encoding="utf-8"))
+        return {"title": str(pic["title"])[:60], "segments": pic["segments"][:turtle_draw.MAX_SEGMENTS],
+                "at": int(pic.get("at", 0))}
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
